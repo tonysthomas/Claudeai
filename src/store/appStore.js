@@ -1,21 +1,18 @@
 import { create } from 'zustand'
 
-const initialUploadedData = {
-  transactions: null,
-  budget: null,
-  payroll: null,
-  vendors: null,
-}
+const DATA_KEYS = ['staff', 'sales', 'training', 'knowledge']
 
-export const useAppStore = create((set) => ({
-  // Uploaded file data (4 types)
-  uploadedData: { ...initialUploadedData },
-  uploadedMeta: {
-    transactions: null,
-    budget: null,
-    payroll: null,
-    vendors: null,
-  },
+const emptyUploads = () =>
+  Object.fromEntries(DATA_KEYS.map((k) => [k, null]))
+
+export const useAppStore = create((set, get) => ({
+  // ── Uploaded file data ──────────────────────────────────────────────────────
+  // Keys: staff | sales | training | knowledge
+  // Each value is the parsed row array, or null if not yet uploaded
+  uploadedData: emptyUploads(),
+
+  // Metadata per file type: { fileName, rowCount, period, uploadedAt, columns }
+  uploadedMeta: emptyUploads(),
 
   setUploadedData: (type, data, meta = null) =>
     set((state) => ({
@@ -30,17 +27,21 @@ export const useAppStore = create((set) => ({
     })),
 
   clearAllData: () =>
-    set({ uploadedData: { ...initialUploadedData } }),
+    set({ uploadedData: emptyUploads(), uploadedMeta: emptyUploads() }),
 
-  // Global period selection
+  // Derived: how many of the 4 types are loaded
+  uploadedCount: () => DATA_KEYS.filter((k) => get().uploadedData[k] !== null).length,
+  allUploaded: () => DATA_KEYS.every((k) => get().uploadedData[k] !== null),
+
+  // ── Global period selection ─────────────────────────────────────────────────
   selectedPeriod: 'Q1 2025',
   setSelectedPeriod: (period) => set({ selectedPeriod: period }),
 
-  // Organisation name
+  // ── Organisation name ───────────────────────────────────────────────────────
   orgName: 'Acme Corporation',
   setOrgName: (name) => set({ orgName: name }),
 
-  // Agent status indicators
+  // ── Agent status indicators ─────────────────────────────────────────────────
   agentStatus: {
     dataAgent: 'idle',
     analyticsAgent: 'idle',
@@ -52,7 +53,7 @@ export const useAppStore = create((set) => ({
       agentStatus: { ...state.agentStatus, [agentKey]: status },
     })),
 
-  // Active navigation section
+  // ── Active navigation page ──────────────────────────────────────────────────
   activePage: 'dashboard',
   setActivePage: (page) => set({ activePage: page }),
 }))

@@ -18,8 +18,18 @@ const NAV_ITEMS = [
   { id: 'outputs', label: 'Outputs', icon: FileOutput },
 ]
 
+// The 4 upload types — same order as the Upload page zones
+const UPLOAD_KEYS = [
+  { key: 'staff', color: '#4f7cff', label: 'Staff' },
+  { key: 'sales', color: '#34d399', label: 'Sales' },
+  { key: 'training', color: '#fbbf24', label: 'Training' },
+  { key: 'knowledge', color: '#a78bfa', label: 'Knowledge' },
+]
+
 export default function Sidebar() {
-  const { activePage, setActivePage } = useAppStore()
+  const activePage = useAppStore((s) => s.activePage)
+  const setActivePage = useAppStore((s) => s.setActivePage)
+  const uploadedData = useAppStore((s) => s.uploadedData)
 
   return (
     <aside
@@ -47,19 +57,20 @@ export default function Sidebar() {
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '10px',
+                gap: 10,
                 width: '100%',
                 padding: '8px 12px',
-                borderRadius: '8px',
+                borderRadius: 8,
                 border: 'none',
                 cursor: 'pointer',
-                marginBottom: '2px',
-                transition: 'background 0.15s, color 0.15s',
+                marginBottom: 2,
+                transition: 'background 0.15s',
                 background: isActive ? 'var(--bg-hover)' : 'transparent',
                 color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-                fontSize: '13.5px',
-                fontWeight: isActive ? '500' : '400',
+                fontSize: 13.5,
+                fontWeight: isActive ? 500 : 400,
                 textAlign: 'left',
+                fontFamily: 'inherit',
               }}
               onMouseEnter={(e) => {
                 if (!isActive) e.currentTarget.style.background = 'var(--bg-elevated)'
@@ -76,7 +87,32 @@ export default function Sidebar() {
                 }}
               />
               <span style={{ flex: 1 }}>{label}</span>
-              {isActive && (
+
+              {/* Upload status dots — always visible on the Upload Data row */}
+              {id === 'upload' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                  {UPLOAD_KEYS.map(({ key, color, label: dotLabel }) => {
+                    const loaded = uploadedData[key] !== null
+                    return (
+                      <div
+                        key={key}
+                        title={`${dotLabel}: ${loaded ? 'uploaded' : 'not uploaded'}`}
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: '50%',
+                          background: loaded ? color : 'var(--text-muted)',
+                          opacity: loaded ? 1 : 0.35,
+                          transition: 'background 0.3s, opacity 0.3s',
+                          flexShrink: 0,
+                        }}
+                      />
+                    )
+                  })}
+                </div>
+              )}
+
+              {isActive && id !== 'upload' && (
                 <ChevronRight size={12} style={{ color: 'var(--text-muted)' }} />
               )}
             </button>
@@ -89,7 +125,7 @@ export default function Sidebar() {
           padding: '12px 16px',
           borderTop: '1px solid var(--border-subtle)',
           color: 'var(--text-muted)',
-          fontSize: '11px',
+          fontSize: 11,
         }}
       >
         TARA v2.0

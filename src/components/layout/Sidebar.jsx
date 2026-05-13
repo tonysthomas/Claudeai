@@ -8,7 +8,6 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { useAppStore } from '@/store/appStore'
-import { cn } from '@/lib/utils'
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },

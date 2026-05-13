@@ -6,7 +6,7 @@ export default function Analytics() {
     <Placeholder
       icon={BarChart3}
       title="Analytics"
-      description="Deep-dive variance analysis, trend charts, and budget vs actuals breakdowns powered by Recharts will render here."
+      description="ATLAS categorisation engine — FROZEN employee categories, skill gap analysis, and training map will render here."
     />
   )
 }

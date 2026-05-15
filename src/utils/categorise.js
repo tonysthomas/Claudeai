@@ -40,27 +40,86 @@ function avg(nums) {
   return nums.reduce((a, b) => a + b, 0) / nums.length
 }
 
-// Build a Map<employee_id → row[]> for multi-row lookups
-function multiMap(rows) {
+// Build a Map<joinKey value → row[]> using whichever column was detected as the join key.
+// Normalises the key: trims whitespace and strips Excel decimal artefacts (1001.0 → 1001).
+function multiMap(rows, key) {
   const m = new Map()
   for (const row of rows) {
-    const k = String(row.employee_id ?? '').trim()
+    const k = String(row[key] ?? '').trim().replace(/\.0+$/, '')
     if (!m.has(k)) m.set(k, [])
     m.get(k).push(row)
   }
   return m
 }
 
+// ── Auto-detect the common join key across all 4 datasets ─────────────────────
+// Finds columns present in every dataset (case-insensitive), then picks the one
+// that looks most like an employee identifier.
+const JOIN_KEY_HINTS = [
+  'employee_id', 'emp_id', 'staff_id', 'agent_id', 'user_id', 'personnel_id',
+  'emp_no', 'employee_no', 'staff_no', 'agent_no', 'id',
+]
+
+export function detectJoinKey(staffRows, salesRows, trainingRows, knowledgeRows) {
+  const allDatasets = [staffRows, salesRows, trainingRows, knowledgeRows]
+  if (allDatasets.some((d) => !d.length)) return null
+
+  // Get column names (original case) per dataset
+  const colSets = allDatasets.map((rows) =>
+    Object.keys(rows[0]).map((c) => ({ original: c, lower: c.toLowerCase().trim() })),
+  )
+
+  // Keep only columns present in ALL 4 datasets (case-insensitive)
+  const common = colSets[0].filter(({ lower }) =>
+    colSets.slice(1).every((set) => set.some((c) => c.lower === lower)),
+  )
+  if (!common.length) return null
+
+  // Prefer columns whose lowercase name matches a known ID hint (in priority order)
+  for (const hint of JOIN_KEY_HINTS) {
+    const match = common.find((c) => c.lower === hint)
+    if (match) return match.original
+  }
+
+  // Partial match: any common column whose name contains 'id'
+  const idLike = common.find((c) => c.lower.includes('id'))
+  if (idLike) return idLike.original
+
+  // Partial match: contains 'no' or 'number'
+  const noLike = common.find((c) => c.lower.includes('_no') || c.lower.includes('number'))
+  if (noLike) return noLike.original
+
+  // Fallback: first common column
+  return common[0].original
+}
+
 // ── Main categorisation entry point ───────────────────────────────────────────
 
 export function runCategorisation(staffRows, salesRows, trainingRows, knowledgeRows) {
-  const salesMap     = multiMap(salesRows)
-  const trainingMap  = multiMap(trainingRows)
-  const knowledgeMap = multiMap(knowledgeRows)
+  // Auto-detect which column to join on
+  const joinKey = detectJoinKey(staffRows, salesRows, trainingRows, knowledgeRows)
+
+  // If no common column exists across all 4 files, every employee is MISSING_DATA
+  if (!joinKey) {
+    return staffRows.map((emp) => ({
+      id: String(Object.values(emp)[0] ?? ''),
+      name: findVal(emp, 'name') || 'Unknown',
+      store: '—', market: 'Unknown',
+      category: 'MISSING_DATA',
+      salesVal: 0, sessions: 0, avgScore: 0,
+      highEngagement: false, highPerformance: false,
+      flag: null,
+      _error: 'No common column found across all 4 files',
+    }))
+  }
+
+  const salesMap     = multiMap(salesRows, joinKey)
+  const trainingMap  = multiMap(trainingRows, joinKey)
+  const knowledgeMap = multiMap(knowledgeRows, joinKey)
 
   // ── PASS 1: resolve per-employee values ───────────────────────────────────
   const employees = staffRows.map((emp) => {
-    const id     = String(emp.employee_id ?? '').trim()
+    const id     = String(emp[joinKey] ?? '').trim().replace(/\.0+$/, '')
     const name   = findVal(emp, 'name')   || `Employee ${id}`
     const store  = findVal(emp, 'store')  || '—'
     const market = findVal(emp, 'market') || 'Unknown'

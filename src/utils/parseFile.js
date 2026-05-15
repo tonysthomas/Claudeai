@@ -1,32 +1,6 @@
 import Papa from 'papaparse'
 import * as XLSX from 'xlsx'
 
-// ── Per-type column requirements ─────────────────────────────────────────────
-// employee_id is the universal join key across all 4 types.
-// Knowledge Score additionally requires score + status for the structural-zero filter.
-export const FILE_CONFIGS = {
-  staff: {
-    key: 'staff',
-    label: 'Staff List',
-    required: ['employee_id'],
-  },
-  sales: {
-    key: 'sales',
-    label: 'Sales Performance',
-    required: ['employee_id'],
-  },
-  training: {
-    key: 'training',
-    label: 'Training Frequency',
-    required: ['employee_id'],
-  },
-  knowledge: {
-    key: 'knowledge',
-    label: 'Knowledge Score',
-    required: ['employee_id', 'score', 'status'],
-  },
-}
-
 // ── Normalisation helpers ─────────────────────────────────────────────────────
 
 function trimHeaders(rows) {
@@ -34,17 +8,6 @@ function trimHeaders(rows) {
     const out = {}
     for (const [k, v] of Object.entries(row)) out[k.trim()] = v
     return out
-  })
-}
-
-function normaliseEmployeeId(rows) {
-  return rows.map((row) => {
-    if ('employee_id' in row) {
-      // Strip decimal suffix: 1001.0 → "1001"
-      const raw = String(row.employee_id).trim()
-      return { ...row, employee_id: raw.replace(/\.0+$/, '') }
-    }
-    return row
   })
 }
 
@@ -99,7 +62,7 @@ async function parseXLSX(file) {
 
 // ── Main entry point ──────────────────────────────────────────────────────────
 
-export async function parseFile(file, config) {
+export async function parseFile(file) {
   const ext = file.name.split('.').pop().toLowerCase()
 
   if (ext !== 'csv' && ext !== 'xlsx' && ext !== 'xls') {
@@ -117,17 +80,8 @@ export async function parseFile(file, config) {
     return { valid: false, errors: ['File is empty or contains no data rows'] }
   }
 
-  // Validate required columns (case-insensitive match)
-  const presentCols = Object.keys(rows[0]).map((c) => c.toLowerCase())
-  const missingColumns = (config.required ?? []).filter(
-    (req) => !presentCols.includes(req.toLowerCase()),
-  )
-  if (missingColumns.length) {
-    return { valid: false, errors: missingColumns, missingColumns }
-  }
-
-  // Apply transformations in order
-  rows = normaliseEmployeeId(rows)   // strip .0 from employee_id
+  // Apply transformations — no hard-coded column requirements.
+  // ATLAS auto-detects the common join key at categorisation time.
   rows = filterStructuralZeros(rows) // drop score=0 & status=passed
 
   const period = detectPeriod(rows)

@@ -2,7 +2,8 @@ import { Users, TrendingUp, BookOpen, Brain, ArrowRight, CheckCircle2, Database 
 import { useAppStore } from '@/store/appStore'
 import UploadZone from '@/components/upload/UploadZone'
 
-// Zone definitions — icon, colour, required columns, description
+// Zone definitions — no hard-coded required columns.
+// ATLAS auto-detects the common join key at categorisation time.
 const ZONES = [
   {
     key: 'staff',
@@ -10,7 +11,7 @@ const ZONES = [
     description: 'Employee master data',
     icon: Users,
     color: '#4f7cff',
-    required: ['employee_id'],
+    required: [],
   },
   {
     key: 'sales',
@@ -18,7 +19,7 @@ const ZONES = [
     description: 'Sales results by period',
     icon: TrendingUp,
     color: '#34d399',
-    required: ['employee_id'],
+    required: [],
   },
   {
     key: 'training',
@@ -26,7 +27,7 @@ const ZONES = [
     description: 'Training session records',
     icon: BookOpen,
     color: '#fbbf24',
-    required: ['employee_id'],
+    required: [],
   },
   {
     key: 'knowledge',
@@ -34,7 +35,7 @@ const ZONES = [
     description: 'Assessment scores & status',
     icon: Brain,
     color: '#a78bfa',
-    required: ['employee_id', 'score', 'status'],
+    required: [],
   },
 ]
 

@@ -160,7 +160,7 @@ export default function UploadZone({ config }) {
       setResult(null)
 
       try {
-        const parsed = await parseFile(file, config)
+        const parsed = await parseFile(file)
         const uploadedAt = new Date()
 
         if (parsed.valid) {

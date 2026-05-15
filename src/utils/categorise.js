@@ -59,8 +59,11 @@ function multiMap(rows, key) {
 // Finds columns present in every dataset (case-insensitive), then picks the one
 // that looks most like an employee identifier.
 const JOIN_KEY_HINTS = [
-  'employee_id', 'emp_id', 'staff_id', 'agent_id', 'user_id', 'personnel_id',
-  'emp_no', 'employee_no', 'staff_no', 'agent_no', 'id',
+  'employee_id', 'emp_id', 'emp id', 'empid',
+  'staff_id', 'staff id', 'agent_id', 'agent id',
+  'user_id', 'user id', 'personnel_id', 'personnel id',
+  'emp_no', 'emp no', 'employee_no', 'employee no',
+  'staff_no', 'staff no', 'agent_no', 'agent no', 'id',
 ]
 
 export function detectJoinKey(staffRows, salesRows, trainingRows, knowledgeRows) {

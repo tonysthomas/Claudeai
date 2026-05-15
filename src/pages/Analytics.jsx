@@ -170,6 +170,93 @@ function MissingBanner({ missing, onGoToUpload }) {
   )
 }
 
+// ── Diagnostics panel ────────────────────────────────────────────────────────
+
+function sampleIds(rows, key) {
+  if (!rows?.length || !key) return []
+  const lower = key.toLowerCase()
+  return rows.slice(0, 5).map((r) => {
+    const col = Object.keys(r).find((c) => c.toLowerCase() === lower)
+    return col ? String(r[col]).trim().replace(/\.0+$/, '') : '(not found)'
+  })
+}
+
+function ColList({ label, rows, joinKey }) {
+  if (!rows?.length) return null
+  const cols = Object.keys(rows[0])
+  const lower = joinKey?.toLowerCase()
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <p style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</p>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+        {cols.map((c) => {
+          const isKey = lower && c.toLowerCase() === lower
+          return (
+            <span key={c} style={{
+              padding: '2px 7px', borderRadius: 4, fontSize: 11.5,
+              fontFamily: 'ui-monospace, monospace',
+              background: isKey ? 'rgba(79,124,255,0.15)' : 'var(--bg-elevated)',
+              border: `1px solid ${isKey ? 'var(--accent-primary)' : 'var(--border)'}`,
+              color: isKey ? 'var(--accent-primary)' : 'var(--text-secondary)',
+            }}>{c}</span>
+          )
+        })}
+      </div>
+      <p style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 5 }}>
+        Sample IDs → {sampleIds(rows, joinKey).map((v, i) => (
+          <code key={i} style={{ background: 'var(--bg-elevated)', padding: '1px 5px', borderRadius: 3, marginRight: 4, fontSize: 11 }}>{v}</code>
+        ))}
+      </p>
+    </div>
+  )
+}
+
+function DiagnosticsPanel({ staff, sales, training, knowledge, joinKey }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div style={{
+      marginBottom: 16, borderRadius: 10,
+      border: '1px solid rgba(251,191,36,0.3)',
+      background: 'rgba(251,191,36,0.04)',
+      overflow: 'hidden',
+    }}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+          padding: '12px 16px', border: 'none', background: 'transparent',
+          cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
+        }}
+      >
+        <span style={{ fontSize: 14 }}>⚠️</span>
+        <span style={{ color: 'var(--accent-warning)', fontWeight: 600, fontSize: 13, flex: 1 }}>
+          All employees are Missing Data — join is failing
+        </span>
+        <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>
+          {joinKey
+            ? <>Detected join column: <code style={{ color: 'var(--accent-primary)', background: 'var(--bg-elevated)', padding: '1px 5px', borderRadius: 3 }}>{joinKey}</code></>
+            : <span style={{ color: 'var(--accent-danger)' }}>No common column found across all 4 files</span>
+          }
+          &nbsp;— click to inspect
+        </span>
+        <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{open ? '▲' : '▼'}</span>
+      </button>
+
+      {open && (
+        <div style={{ padding: '0 16px 16px', borderTop: '1px solid rgba(251,191,36,0.2)' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 12.5, margin: '12px 0 16px' }}>
+            The highlighted column (blue) is the detected join key. Check that it appears in <strong>all 4 files</strong> and that the sample IDs match across files.
+          </p>
+          <ColList label="Staff List"         rows={staff}     joinKey={joinKey} />
+          <ColList label="Sales Performance"  rows={sales}     joinKey={joinKey} />
+          <ColList label="Training Frequency" rows={training}  joinKey={joinKey} />
+          <ColList label="Knowledge Score"    rows={knowledge} joinKey={joinKey} />
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Page header ───────────────────────────────────────────────────────────────
 
 function PageHeader({ onRerun, hasResults, joinKey }) {
@@ -316,6 +403,16 @@ export default function Analytics() {
             activeCategory={activeCategory}
             onCategoryClick={handleCategoryClick}
           />
+
+          {/* Diagnostics panel — shown when all/most employees are MISSING_DATA */}
+          {results.length > 0 &&
+            results.filter((e) => e.category === 'MISSING_DATA').length === results.length && (
+            <DiagnosticsPanel
+              staff={staff} sales={sales} training={training} knowledge={knowledge}
+              joinKey={detectedJoinKey}
+            />
+          )}
+
           <EmployeeTable
             employees={results}
             activeCategory={activeCategory}

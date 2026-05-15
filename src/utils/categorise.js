@@ -40,12 +40,15 @@ function avg(nums) {
   return nums.reduce((a, b) => a + b, 0) / nums.length
 }
 
-// Build a Map<joinKey value → row[]> using whichever column was detected as the join key.
-// Normalises the key: trims whitespace and strips Excel decimal artefacts (1001.0 → 1001).
+// Build a Map<joinKey value → row[]>.
+// Finds the column case-insensitively so mismatched casing across files still joins.
+// Normalises values: trim + strip Excel decimal artefacts (1001.0 → 1001).
 function multiMap(rows, key) {
   const m = new Map()
+  const keyLower = key.toLowerCase()
   for (const row of rows) {
-    const k = String(row[key] ?? '').trim().replace(/\.0+$/, '')
+    const actualCol = Object.keys(row).find((c) => c.toLowerCase() === keyLower) ?? key
+    const k = String(row[actualCol] ?? '').trim().replace(/\.0+$/, '')
     if (!m.has(k)) m.set(k, [])
     m.get(k).push(row)
   }
@@ -118,8 +121,10 @@ export function runCategorisation(staffRows, salesRows, trainingRows, knowledgeR
   const knowledgeMap = multiMap(knowledgeRows, joinKey)
 
   // ── PASS 1: resolve per-employee values ───────────────────────────────────
+  const joinKeyLower = joinKey.toLowerCase()
   const employees = staffRows.map((emp) => {
-    const id     = String(emp[joinKey] ?? '').trim().replace(/\.0+$/, '')
+    const staffCol = Object.keys(emp).find((c) => c.toLowerCase() === joinKeyLower) ?? joinKey
+    const id       = String(emp[staffCol] ?? '').trim().replace(/\.0+$/, '')
     const name   = findVal(emp, 'name')   || `Employee ${id}`
     const store  = findVal(emp, 'store')  || '—'
     const market = findVal(emp, 'market') || 'Unknown'

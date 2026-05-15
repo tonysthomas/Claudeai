@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { BarChart3, Upload, RefreshCw, AlertCircle } from 'lucide-react'
 import { useAppStore } from '@/store/appStore'
-import { runCategorisation } from '@/utils/categorise'
+import { runCategorisation, detectJoinKey } from '@/utils/categorise'
 import CategoryCards from '@/components/analytics/CategoryCards'
 import EmployeeTable from '@/components/analytics/EmployeeTable'
 
@@ -172,7 +172,7 @@ function MissingBanner({ missing, onGoToUpload }) {
 
 // ── Page header ───────────────────────────────────────────────────────────────
 
-function PageHeader({ onRerun, hasResults }) {
+function PageHeader({ onRerun, hasResults, joinKey }) {
   return (
     <div
       style={{
@@ -203,6 +203,11 @@ function PageHeader({ onRerun, hasResults }) {
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: 12.5, marginTop: 2 }}>
             ATLAS categorisation engine — FROZEN employee categories
+            {joinKey && (
+              <span style={{ color: 'var(--text-muted)', fontSize: 11, marginLeft: 8 }}>
+                joined on <code style={{ color: 'var(--accent-primary)', background: 'var(--bg-elevated)', padding: '1px 5px', borderRadius: 3, fontSize: 11 }}>{joinKey}</code>
+              </span>
+            )}
           </p>
         </div>
       </div>
@@ -255,6 +260,11 @@ export default function Analytics() {
   // Derived: show skeleton whenever all files are ready but results haven't arrived yet
   const loading = allReady && results === null
 
+  // Show which column ATLAS is joining on (helps diagnose mismatches)
+  const detectedJoinKey = allReady
+    ? detectJoinKey(staff, sales, training, knowledge)
+    : null
+
   // Auto-run when all files are present, or when runKey changes.
   // All state mutations happen inside callbacks or the cleanup — never synchronously
   // in the effect body — to satisfy the react-hooks/set-state-in-effect rule.
@@ -291,7 +301,7 @@ export default function Analytics() {
 
   return (
     <div style={{ padding: '32px 36px', maxWidth: 1100, width: '100%' }}>
-      <PageHeader hasResults={!!results} onRerun={() => setRunKey((k) => k + 1)} />
+      <PageHeader hasResults={!!results} onRerun={() => setRunKey((k) => k + 1)} joinKey={detectedJoinKey} />
 
       {!allReady && (
         <MissingBanner missing={missing} onGoToUpload={() => setActivePage('upload')} />

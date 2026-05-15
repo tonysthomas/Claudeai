@@ -67,6 +67,7 @@ const JOIN_KEY_HINTS = [
 ]
 
 export function detectJoinKey(staffRows, salesRows, trainingRows, knowledgeRows) {
+  const labels = ['staff', 'sales', 'training', 'knowledge']
   const allDatasets = [staffRows, salesRows, trainingRows, knowledgeRows]
   if (allDatasets.some((d) => !d.length)) return null
 
@@ -75,27 +76,47 @@ export function detectJoinKey(staffRows, salesRows, trainingRows, knowledgeRows)
     Object.keys(rows[0]).map((c) => ({ original: c, lower: c.toLowerCase().trim() })),
   )
 
+  // Log columns found in each file for diagnosis
+  colSets.forEach((cols, i) => {
+    console.log(`[ATLAS] ${labels[i]} columns (${cols.length}):`, cols.map((c) => c.original))
+  })
+
   // Keep only columns present in ALL 4 datasets (case-insensitive)
   const common = colSets[0].filter(({ lower }) =>
     colSets.slice(1).every((set) => set.some((c) => c.lower === lower)),
   )
-  if (!common.length) return null
+  console.log('[ATLAS] Common columns across all 4 files:', common.map((c) => c.original))
+
+  if (!common.length) {
+    console.warn('[ATLAS] No common column found — cannot join. Check that all 4 files share at least one column name.')
+    return null
+  }
 
   // Prefer columns whose lowercase name matches a known ID hint (in priority order)
   for (const hint of JOIN_KEY_HINTS) {
     const match = common.find((c) => c.lower === hint)
-    if (match) return match.original
+    if (match) {
+      console.log(`[ATLAS] Join key detected (hint match): "${match.original}"`)
+      return match.original
+    }
   }
 
   // Partial match: any common column whose name contains 'id'
   const idLike = common.find((c) => c.lower.includes('id'))
-  if (idLike) return idLike.original
+  if (idLike) {
+    console.log(`[ATLAS] Join key detected (partial 'id' match): "${idLike.original}"`)
+    return idLike.original
+  }
 
   // Partial match: contains 'no' or 'number'
   const noLike = common.find((c) => c.lower.includes('_no') || c.lower.includes('number'))
-  if (noLike) return noLike.original
+  if (noLike) {
+    console.log(`[ATLAS] Join key detected (partial 'no' match): "${noLike.original}"`)
+    return noLike.original
+  }
 
   // Fallback: first common column
+  console.log(`[ATLAS] Join key detected (fallback — first common column): "${common[0].original}"`)
   return common[0].original
 }
 
@@ -122,6 +143,18 @@ export function runCategorisation(staffRows, salesRows, trainingRows, knowledgeR
   const salesMap     = multiMap(salesRows, joinKey)
   const trainingMap  = multiMap(trainingRows, joinKey)
   const knowledgeMap = multiMap(knowledgeRows, joinKey)
+
+  console.log(`[ATLAS] Maps built — staff:${staffRows.length} sales:${salesMap.size} training:${trainingMap.size} knowledge:${knowledgeMap.size}`)
+  // Sample first 3 keys from each map to verify values match
+  const sample = (m) => [...m.keys()].slice(0, 3)
+  console.log('[ATLAS] Sample IDs — sales:', sample(salesMap), '| training:', sample(trainingMap), '| knowledge:', sample(knowledgeMap))
+  // Sample staff IDs
+  const joinKeyLower0 = joinKey.toLowerCase()
+  const staffSample = staffRows.slice(0, 3).map((r) => {
+    const col = Object.keys(r).find((c) => c.toLowerCase() === joinKeyLower0) ?? joinKey
+    return String(r[col] ?? '').trim().replace(/\.0+$/, '')
+  })
+  console.log('[ATLAS] Sample IDs — staff:', staffSample)
 
   // ── PASS 1: resolve per-employee values ───────────────────────────────────
   const joinKeyLower = joinKey.toLowerCase()
@@ -204,6 +237,9 @@ export function runCategorisation(staffRows, salesRows, trainingRows, knowledgeR
       e.category = 'NEEDS_SUPPORT'
     }
   }
+
+  const catCounts = employees.reduce((acc, e) => { acc[e.category] = (acc[e.category] || 0) + 1; return acc }, {})
+  console.log('[ATLAS] Category counts:', catCounts)
 
   return employees
 }

@@ -1,0 +1,1536 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>JARVIS · It's AI Education</title>
+<meta name="description" content="Voice-enabled command dashboard for the It's AI Education academy — daily plan, strategy, learning framework and a Jarvis co-pilot." />
+<style>
+/* ============================================================
+   JARVIS · It's AI Education — Holographic Command HUD
+   Single-file app. Committed dark HUD world, with a legible
+   light fallback. Built on the brand palette:
+   Navy #0c1a2b · aha-blue #5ab0ff · stop-orange #ff7a59
+   ============================================================ */
+
+:root{
+  /* grounds */
+  --bg:#050c15;
+  --bg-2:#081320;
+  --panel:rgba(12,26,43,.72);
+  --panel-solid:#0c1a2b;
+  --panel-2:rgba(18,36,58,.6);
+  --line:rgba(90,176,255,.16);
+  --line-strong:rgba(90,176,255,.34);
+  /* ink */
+  --ink:#e6f1fb;
+  --ink-2:#a7c0d8;
+  --ink-3:#6c8299;
+  /* brand */
+  --cyan:#5ab0ff;
+  --cyan-dim:#2f6fb0;
+  --orange:#ff7a59;
+  --teal:#3dd7a0;
+  --amber:#ffcf5c;
+  --violet:#b58cff;
+  /* semantic */
+  --good:#3dd7a0;
+  --warn:#ffcf5c;
+  --crit:#ff7a59;
+  --glow:0 0 0 1px rgba(90,176,255,.18), 0 0 24px -6px rgba(90,176,255,.35);
+  --radius:14px;
+  --mono:ui-monospace,"SF Mono","Cascadia Code","JetBrains Mono",Menlo,Consolas,monospace;
+  --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --maxw:1220px;
+}
+:root[data-theme="light"]{
+  --bg:#eef4fb; --bg-2:#e4edf7;
+  --panel:rgba(255,255,255,.82); --panel-solid:#ffffff; --panel-2:rgba(240,246,253,.9);
+  --line:rgba(12,26,43,.12); --line-strong:rgba(12,26,43,.22);
+  --ink:#0c1a2b; --ink-2:#3a5169; --ink-3:#6c8299;
+  --cyan:#1f78d1; --cyan-dim:#8fbdf0; --glow:0 0 0 1px rgba(31,120,209,.14), 0 10px 30px -14px rgba(31,120,209,.4);
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme]){
+    --bg:#eef4fb; --bg-2:#e4edf7;
+    --panel:rgba(255,255,255,.82); --panel-solid:#ffffff; --panel-2:rgba(240,246,253,.9);
+    --line:rgba(12,26,43,.12); --line-strong:rgba(12,26,43,.22);
+    --ink:#0c1a2b; --ink-2:#3a5169; --ink-3:#6c8299;
+    --cyan:#1f78d1; --cyan-dim:#8fbdf0; --glow:0 0 0 1px rgba(31,120,209,.14), 0 10px 30px -14px rgba(31,120,209,.4);
+  }
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--sans); color:var(--ink); background:var(--bg);
+  -webkit-font-smoothing:antialiased; line-height:1.5;
+  min-height:100vh;
+}
+body::before{ /* ambient grid + glow */
+  content:""; position:fixed; inset:0; z-index:-2; pointer-events:none;
+  background:
+    radial-gradient(1200px 700px at 78% -10%, rgba(90,176,255,.14), transparent 60%),
+    radial-gradient(900px 600px at 8% 108%, rgba(255,122,89,.10), transparent 55%),
+    linear-gradient(180deg,var(--bg),var(--bg-2));
+}
+body::after{
+  content:""; position:fixed; inset:0; z-index:-1; pointer-events:none; opacity:.5;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:44px 44px; mask-image:radial-gradient(circle at 50% 30%,#000,transparent 85%);
+}
+:root[data-theme="light"] body::after{opacity:.6}
+
+a{color:var(--cyan);text-decoration:none}
+button{font-family:inherit}
+.mono{font-family:var(--mono)}
+.tnum{font-variant-numeric:tabular-nums}
+
+/* ---------- Layout shell ---------- */
+.app{max-width:var(--maxw); margin:0 auto; padding:18px 20px 150px; }
+.topbar{
+  display:flex; align-items:center; gap:16px; padding:12px 16px; margin-bottom:18px;
+  border:1px solid var(--line); border-radius:var(--radius);
+  background:var(--panel); backdrop-filter:blur(10px); box-shadow:var(--glow);
+  position:sticky; top:12px; z-index:40;
+}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.chip-logo{
+  width:38px;height:38px;border-radius:10px;flex:none;position:relative;
+  background:radial-gradient(circle at 50% 40%,#0b2038,#06101c);
+  border:1px solid var(--line-strong);
+  display:grid;place-items:center;
+}
+.chip-logo::before{content:"";width:16px;height:16px;border-radius:50%;
+  background:radial-gradient(circle at 50% 40%,#bfe1ff,var(--cyan) 60%,transparent 72%);
+  box-shadow:0 0 14px 2px rgba(90,176,255,.7); animation:pulse 3.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(.9);opacity:.85}50%{transform:scale(1.12);opacity:1}}
+.brand h1{font-size:15px;margin:0;letter-spacing:.5px;font-weight:700;line-height:1.05}
+.brand .sub{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);letter-spacing:1.5px;text-transform:uppercase}
+.top-spacer{flex:1}
+.clock{font-family:var(--mono);text-align:right;line-height:1.15}
+.clock .t{font-size:15px;font-weight:600;letter-spacing:.5px}
+.clock .d{font-size:10.5px;color:var(--ink-3);text-transform:uppercase;letter-spacing:1px}
+.status-dot{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10.5px;
+  text-transform:uppercase;letter-spacing:1.4px;color:var(--teal);
+  padding:5px 10px;border:1px solid rgba(61,215,160,.3);border-radius:20px;background:rgba(61,215,160,.07)}
+.status-dot i{width:7px;height:7px;border-radius:50%;background:var(--teal);box-shadow:0 0 8px var(--teal)}
+.icon-btn{width:36px;height:36px;border-radius:10px;border:1px solid var(--line);background:var(--panel-2);
+  color:var(--ink-2);cursor:pointer;display:grid;place-items:center;font-size:15px;transition:.15s}
+.icon-btn:hover{color:var(--cyan);border-color:var(--line-strong);box-shadow:var(--glow)}
+
+/* ---------- Nav ---------- */
+.nav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px}
+.nav button{
+  font-family:var(--mono);font-size:11.5px;letter-spacing:1px;text-transform:uppercase;
+  color:var(--ink-2);background:transparent;border:1px solid var(--line);border-radius:10px;
+  padding:9px 14px;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:8px}
+.nav button:hover{color:var(--ink);border-color:var(--line-strong)}
+.nav button.active{color:var(--bg-2);background:var(--cyan);border-color:var(--cyan);
+  box-shadow:0 0 20px -4px var(--cyan);font-weight:600}
+:root[data-theme="light"] .nav button.active{color:#fff}
+.nav .badge{font-size:9.5px;background:rgba(0,0,0,.18);padding:1px 6px;border-radius:8px}
+.nav button.active .badge{background:rgba(255,255,255,.25)}
+
+/* ---------- Panels ---------- */
+.grid{display:grid;gap:16px}
+.panel{border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);
+  backdrop-filter:blur(8px);padding:18px}
+.panel.solid{background:var(--panel-solid)}
+.panel h2{margin:0 0 2px;font-size:13px;letter-spacing:.4px}
+.eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--cyan);margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.eyebrow::before{content:"";width:14px;height:1px;background:var(--cyan);display:inline-block}
+.muted{color:var(--ink-3)}
+.view{display:none;animation:fade .35s ease}
+.view.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+h3.section-title{font-size:12px;font-family:var(--mono);letter-spacing:2px;text-transform:uppercase;color:var(--ink-3);margin:26px 4px 12px}
+
+/* ---------- Command hero ---------- */
+.hero{display:grid;grid-template-columns:320px 1fr;gap:18px}
+@media(max-width:820px){.hero{grid-template-columns:1fr}}
+.orb-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  border:1px solid var(--line);border-radius:var(--radius);background:
+  radial-gradient(circle at 50% 30%,rgba(90,176,255,.10),transparent 70%),var(--panel);
+  padding:22px 18px}
+.orb{position:relative;width:180px;height:180px;cursor:pointer}
+.orb canvas{width:100%;height:100%;display:block}
+.orb .ring{position:absolute;inset:0;border-radius:50%;border:1px solid var(--line-strong);
+  animation:spin 14s linear infinite}
+.orb .ring.r2{inset:14px;border-style:dashed;animation-duration:22s;animation-direction:reverse;opacity:.6}
+@keyframes spin{to{transform:rotate(360deg)}}
+.orb.speaking .ring{border-color:var(--cyan)}
+.orb.listening .ring{border-color:var(--orange)}
+.orb-caption{font-family:var(--mono);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink-3);text-align:center}
+.orb-caption b{color:var(--cyan)}
+.mic-hint{font-size:11px;color:var(--ink-3);text-align:center}
+
+.greet h2{font-size:22px;margin:0 0 6px;letter-spacing:-.2px;text-wrap:balance}
+.greet .lead{color:var(--ink-2);font-size:14px;margin:0 0 14px;max-width:60ch}
+.pill{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;
+  letter-spacing:.5px;padding:5px 11px;border-radius:20px;border:1px solid var(--line);color:var(--ink-2);background:var(--panel-2)}
+.pill b{color:var(--ink)}
+.pill.cyan{border-color:var(--line-strong);color:var(--cyan)}
+.pill-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+
+/* ---------- Tiles / KPI ---------- */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.tile{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--panel-2);position:relative;overflow:hidden}
+.tile .k{font-family:var(--mono);font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--ink-3)}
+.tile .v{font-size:26px;font-weight:700;letter-spacing:-.5px;margin-top:6px;font-variant-numeric:tabular-nums}
+.tile .v small{font-size:13px;color:var(--ink-3);font-weight:500}
+.tile .foot{font-size:11px;color:var(--ink-3);margin-top:2px}
+.tile .stripe{position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--cyan)}
+.tile.good .stripe{background:var(--good)} .tile.warn .stripe{background:var(--warn)} .tile.crit .stripe{background:var(--crit)}
+
+/* meter */
+.meter{height:7px;border-radius:6px;background:rgba(120,150,180,.18);overflow:hidden;margin-top:10px}
+.meter i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,var(--cyan-dim),var(--cyan));transition:width .6s cubic-bezier(.4,0,.2,1)}
+.meter.good i{background:linear-gradient(90deg,#1f9d75,var(--good))}
+.meter.warn i{background:linear-gradient(90deg,#c99a2e,var(--warn))}
+.meter.crit i{background:linear-gradient(90deg,#c9563a,var(--crit))}
+
+/* ---------- Task list ---------- */
+.task{display:flex;gap:13px;align-items:flex-start;padding:13px 14px;border:1px solid var(--line);
+  border-radius:12px;background:var(--panel-2);margin-bottom:10px;transition:.15s}
+.task:hover{border-color:var(--line-strong)}
+.task.done{opacity:.55}
+.task.done .hook{text-decoration:line-through}
+.check{width:22px;height:22px;flex:none;border-radius:7px;border:1.5px solid var(--line-strong);
+  background:transparent;cursor:pointer;display:grid;place-items:center;margin-top:1px;transition:.15s;color:transparent}
+.check:hover{border-color:var(--cyan)}
+.task.done .check{background:var(--cyan);border-color:var(--cyan);color:var(--bg-2)}
+.task-body{flex:1;min-width:0}
+.task .hook{font-size:14px;font-weight:600;line-height:1.35;margin-bottom:6px;text-wrap:balance}
+.task .meta{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.tag{font-family:var(--mono);font-size:9.5px;letter-spacing:1px;text-transform:uppercase;padding:2px 7px;border-radius:6px;border:1px solid var(--line);color:var(--ink-3)}
+.tag.time{color:var(--cyan);border-color:var(--line-strong)}
+.tag.carousel{color:var(--cyan)} .tag.reel{color:var(--violet)} .tag.text{color:var(--teal)}
+.tag.keyword{color:var(--orange);border-color:rgba(255,122,89,.4)}
+.tag.build,.tag.engage,.tag.review,.tag.gate{color:var(--amber);border-color:rgba(255,207,92,.35)}
+.tag.cta{color:var(--ink-2)}
+
+/* ---------- Levels / pyramid ---------- */
+.level{border:1px solid var(--line);border-radius:12px;background:var(--panel-2);margin-bottom:12px;overflow:hidden}
+.level-head{display:flex;gap:14px;align-items:center;padding:14px 16px;cursor:pointer}
+.level-num{width:42px;height:42px;flex:none;border-radius:10px;display:grid;place-items:center;
+  font-family:var(--mono);font-weight:700;font-size:17px;color:var(--bg-2);background:var(--cyan)}
+.level:nth-child(1) .level-num{background:#5ab0ff}
+.level:nth-child(2) .level-num{background:#4fc3c9}
+.level:nth-child(3) .level-num{background:#3dd7a0}
+.level:nth-child(4) .level-num{background:#ffcf5c}
+.level:nth-child(5) .level-num{background:#ff7a59}
+:root[data-theme="light"] .level-num{color:#fff}
+.level-head h3{margin:0;font-size:15px}
+.level-head .cert{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);letter-spacing:.5px;margin-top:2px}
+.level-head .who{font-size:11.5px;color:var(--ink-3);margin-top:3px}
+.level-head .caret{margin-left:auto;color:var(--ink-3);transition:.2s;font-size:13px}
+.level.open .caret{transform:rotate(180deg);color:var(--cyan)}
+.level-body{display:none;padding:0 16px 16px 72px}
+.level.open .level-body{display:block;animation:fade .25s}
+.mods{display:flex;flex-wrap:wrap;gap:7px;margin:6px 0 12px}
+.mod{font-size:12px;padding:5px 10px;border-radius:8px;background:var(--panel);border:1px solid var(--line);color:var(--ink-2)}
+.mod b{color:var(--cyan);font-family:var(--mono);font-size:10px;margin-right:5px}
+.outcome{font-size:13px;color:var(--ink-2);border-left:2px solid var(--cyan);padding-left:12px}
+
+/* ---------- Two-col content ---------- */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:760px){.cols{grid-template-columns:1fr}}
+.def{margin-bottom:14px}
+.def .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--cyan);margin-bottom:4px}
+.def p{margin:0;font-size:13.5px;color:var(--ink-2);line-height:1.55}
+ul.clean{list-style:none;padding:0;margin:8px 0 0}
+ul.clean li{position:relative;padding:5px 0 5px 20px;font-size:13px;color:var(--ink-2);border-bottom:1px solid var(--line)}
+ul.clean li:last-child{border-bottom:0}
+ul.clean li::before{content:"›";position:absolute;left:4px;color:var(--cyan);font-weight:700}
+
+/* phases */
+.phase-row{display:grid;grid-template-columns:1fr;gap:12px}
+.phase{border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:12px;padding:14px 16px;background:var(--panel-2)}
+.phase.p1{border-left-color:var(--cyan)} .phase.p2{border-left-color:var(--teal)}
+.phase.p3{border-left-color:var(--amber)} .phase.p4{border-left-color:var(--orange)}
+.phase h4{margin:0 0 3px;font-size:14px}
+.phase .when{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);letter-spacing:1px;text-transform:uppercase}
+.phase p{margin:8px 0 0;font-size:12.5px;color:var(--ink-2)}
+.phase.current{background:rgba(90,176,255,.08);box-shadow:var(--glow)}
+.phase .live{font-family:var(--mono);font-size:9.5px;color:var(--cyan);border:1px solid var(--line-strong);border-radius:6px;padding:1px 7px;margin-left:8px;letter-spacing:1px}
+
+/* gate rows */
+.gate-item{display:grid;grid-template-columns:1fr auto;gap:6px 14px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.gate-item:last-child{border-bottom:0}
+.gate-item .g-label{font-size:13.5px}
+.gate-item .g-sub{font-size:11px;color:var(--ink-3);grid-column:1/2}
+.gate-item .g-val{font-family:var(--mono);font-size:12px;text-align:right;color:var(--ink-2)}
+.gate-item .meter{grid-column:1/-1}
+.g-status{font-family:var(--mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:2px 8px;border-radius:6px}
+.g-status.met{color:var(--good);border:1px solid rgba(61,215,160,.35)}
+.g-status.near{color:var(--warn);border:1px solid rgba(255,207,92,.35)}
+.g-status.off{color:var(--crit);border:1px solid rgba(255,122,89,.35)}
+
+/* editable metric */
+.metric-edit{display:flex;align-items:center;gap:8px;margin-top:8px}
+.metric-edit input{width:88px;background:var(--bg-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);
+  padding:7px 10px;font-family:var(--mono);font-size:13px}
+.metric-edit input:focus{outline:none;border-color:var(--cyan)}
+.mini-btn{font-family:var(--mono);font-size:10.5px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;
+  padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink-2);transition:.15s}
+.mini-btn:hover{color:var(--cyan);border-color:var(--line-strong)}
+.mini-btn.primary{background:var(--cyan);color:var(--bg-2);border-color:var(--cyan);font-weight:600}
+:root[data-theme="light"] .mini-btn.primary{color:#fff}
+.toggle{display:inline-flex;gap:6px}
+.toggle button{padding:6px 12px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink-3);border-radius:8px;cursor:pointer;font-family:var(--mono);font-size:11px}
+.toggle button.on{background:var(--good);color:var(--bg-2);border-color:var(--good)}
+
+/* log */
+.log-entry{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--panel-2);margin-bottom:10px}
+.log-entry .when{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);letter-spacing:1px;margin-bottom:5px}
+.log-entry .tp{font-family:var(--mono);font-size:9.5px;padding:1px 7px;border-radius:6px;border:1px solid var(--line);margin-left:6px;color:var(--cyan)}
+.log-entry p{margin:0;font-size:13.5px;color:var(--ink)}
+textarea,.txin{width:100%;background:var(--bg-2);border:1px solid var(--line);border-radius:10px;color:var(--ink);
+  padding:11px 13px;font-family:inherit;font-size:13.5px;resize:vertical}
+textarea:focus,.txin:focus{outline:none;border-color:var(--cyan)}
+
+/* social */
+.soc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.soc{border:1px solid var(--line);border-radius:12px;padding:16px;background:var(--panel-2);position:relative}
+.soc .net{font-family:var(--mono);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink-3)}
+.soc .role{font-size:12px;color:var(--ink-2);margin-top:6px}
+.soon{position:absolute;top:12px;right:12px;font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--amber);border:1px solid rgba(255,207,92,.35);border-radius:20px;padding:2px 9px}
+
+/* ---------- Jarvis dock ---------- */
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:60;padding:12px 16px;
+  background:linear-gradient(180deg,transparent,var(--bg) 34%)}
+.dock-inner{max-width:var(--maxw);margin:0 auto;display:flex;gap:10px;align-items:center;
+  border:1px solid var(--line-strong);border-radius:16px;background:var(--panel);backdrop-filter:blur(14px);
+  padding:10px 12px;box-shadow:0 -8px 40px -20px rgba(0,0,0,.7),var(--glow)}
+.mic-btn{width:48px;height:48px;flex:none;border-radius:50%;border:1px solid var(--line-strong);cursor:pointer;
+  background:radial-gradient(circle at 50% 35%,#12314f,#06101c);display:grid;place-items:center;color:var(--cyan);font-size:20px;
+  transition:.15s;position:relative}
+.mic-btn:hover{box-shadow:0 0 22px -4px var(--cyan)}
+.mic-btn.on{color:var(--orange);border-color:var(--orange);animation:micpulse 1.2s ease-in-out infinite}
+@keyframes micpulse{0%,100%{box-shadow:0 0 0 0 rgba(255,122,89,.45)}50%{box-shadow:0 0 0 10px rgba(255,122,89,0)}}
+.dock input{flex:1;background:transparent;border:none;color:var(--ink);font-size:14px;padding:8px 4px;font-family:inherit}
+.dock input:focus{outline:none}
+.dock input::placeholder{color:var(--ink-3)}
+.send-btn{width:42px;height:42px;flex:none;border-radius:12px;border:1px solid var(--line);background:var(--cyan);
+  color:var(--bg-2);cursor:pointer;font-size:16px;display:grid;place-items:center}
+:root[data-theme="light"] .send-btn{color:#fff}
+.dock .spk{color:var(--ink-3)}
+.dock .spk.on{color:var(--teal)}
+
+/* transcript overlay */
+.console{position:fixed;right:16px;bottom:82px;z-index:59;width:min(420px,calc(100vw - 32px));
+  max-height:min(60vh,520px);display:none;flex-direction:column;
+  border:1px solid var(--line-strong);border-radius:16px;background:var(--panel);backdrop-filter:blur(16px);
+  box-shadow:0 20px 60px -20px rgba(0,0,0,.8),var(--glow);overflow:hidden}
+.console.open{display:flex;animation:fade .25s}
+.console-head{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.console-head .dotp{width:8px;height:8px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
+.console-head b{font-size:12px;letter-spacing:.5px}
+.console-head .x{margin-left:auto;cursor:pointer;color:var(--ink-3);background:none;border:none;font-size:16px}
+.msgs{padding:14px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+.msg{max-width:88%;font-size:13.5px;line-height:1.5}
+.msg.j{align-self:flex-start;color:var(--ink)}
+.msg.u{align-self:flex-end;background:var(--cyan);color:var(--bg-2);padding:8px 12px;border-radius:12px 12px 3px 12px}
+:root[data-theme="light"] .msg.u{color:#fff}
+.msg.j .who{font-family:var(--mono);font-size:9.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--cyan);margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.msg.j .bubble{background:var(--panel-2);border:1px solid var(--line);padding:10px 13px;border-radius:12px 12px 12px 3px}
+.msg.j .bubble p{margin:0 0 8px}.msg.j .bubble p:last-child{margin:0}
+.msg.j .bubble ul{margin:6px 0;padding-left:18px}.msg.j .bubble li{margin:3px 0}
+.msg.j .bubble b{color:var(--ink)}
+.typing span{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--cyan);margin:0 2px;animation:blink 1.2s infinite}
+.typing span:nth-child(2){animation-delay:.2s}.typing span:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:.25}40%{opacity:1}}
+
+/* settings modal */
+.modal{position:fixed;inset:0;z-index:80;display:none;place-items:center;background:rgba(2,8,15,.7);backdrop-filter:blur(4px);padding:20px}
+.modal.open{display:grid;animation:fade .2s}
+.modal .card{width:min(520px,100%);max-height:85vh;overflow-y:auto;border:1px solid var(--line-strong);border-radius:16px;background:var(--panel-solid);padding:22px;box-shadow:var(--glow)}
+.modal h2{margin:0 0 4px}
+.field{margin:16px 0}
+.field label{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink-3);margin-bottom:7px}
+.field input,.field select{width:100%;background:var(--bg-2);border:1px solid var(--line);border-radius:9px;color:var(--ink);padding:10px 12px;font-family:inherit;font-size:13.5px}
+.field input:focus,.field select:focus{outline:none;border-color:var(--cyan)}
+.field .hint{font-size:11px;color:var(--ink-3);margin-top:6px;line-height:1.5}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+
+/* toast */
+.toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(20px);z-index:90;
+  background:var(--panel-solid);border:1px solid var(--line-strong);border-radius:12px;padding:11px 18px;
+  font-size:13px;box-shadow:var(--glow);opacity:0;pointer-events:none;transition:.3s}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.footer-note{text-align:center;font-size:11px;color:var(--ink-3);margin-top:28px;font-family:var(--mono);letter-spacing:.5px}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.001s!important;transition-duration:.05s!important}}
+::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:8px}::-webkit-scrollbar-track{background:transparent}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="chip-logo"></div>
+      <div>
+        <h1>J.A.R.V.I.S</h1>
+        <div class="sub">It's AI Education · Command</div>
+      </div>
+    </div>
+    <div class="top-spacer"></div>
+    <div class="status-dot"><i></i> Online</div>
+    <div class="clock"><div class="t" id="clockT">--:--</div><div class="d" id="clockD">—</div></div>
+    <button class="icon-btn" id="themeBtn" title="Toggle theme">◐</button>
+    <button class="icon-btn" id="settingsBtn" title="Settings">⚙</button>
+  </header>
+
+  <!-- NAV -->
+  <nav class="nav" id="nav">
+    <button data-view="command" class="active">◎ Command</button>
+    <button data-view="today">▣ Today <span class="badge" id="navToday">0</span></button>
+    <button data-view="week">▤ This Week</button>
+    <button data-view="academy">▲ Academy</button>
+    <button data-view="strategy">✦ Strategy</button>
+    <button data-view="gate">◈ Phase Gate</button>
+    <button data-view="log">✎ Daily Log</button>
+    <button data-view="social">⇄ Social</button>
+  </nav>
+
+  <!-- ============ COMMAND ============ -->
+  <section class="view active" id="view-command">
+    <div class="hero">
+      <div class="orb-wrap">
+        <div class="orb" id="orb" title="Tap to talk">
+          <div class="ring"></div><div class="ring r2"></div>
+          <canvas width="360" height="360"></canvas>
+        </div>
+        <div class="orb-caption" id="orbCaption">Tap the core · <b>talk to Jarvis</b></div>
+        <div class="mic-hint" id="voiceState">Voice ready</div>
+      </div>
+      <div class="greet panel" style="display:flex;flex-direction:column;justify-content:center">
+        <div class="eyebrow" id="dayContext">Phase 1 · Authority</div>
+        <h2 id="greetLine">Good day, Tony.</h2>
+        <p class="lead" id="greetLead">Booting the day's plan…</p>
+        <div class="pill-row" id="heroPills"></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
+          <button class="mini-btn primary" onclick="Jarvis.brief()">◎ Brief me</button>
+          <button class="mini-btn" onclick="App.go('today')">▣ Today's posts</button>
+          <button class="mini-btn" onclick="Jarvis.feedback()">✦ How am I doing?</button>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="section-title">Today · <span id="todayDateLabel"></span></h3>
+    <div id="commandToday"></div>
+
+    <h3 class="section-title">Phase 1 gate — live progress</h3>
+    <div class="tiles" id="commandKPIs"></div>
+    <p class="footer-note">Cold-start flatness at 0 followers is normal — judge on trends across 10+ posts, never one post.</p>
+  </section>
+
+  <!-- ============ TODAY ============ -->
+  <section class="view" id="view-today">
+    <div class="panel" style="margin-bottom:16px">
+      <div class="eyebrow">Daily execution</div>
+      <h2 id="todayHeadline">Today's plan</h2>
+      <p class="muted" id="todaySub" style="font-size:13px;margin:6px 0 0"></p>
+    </div>
+    <div id="todayList"></div>
+  </section>
+
+  <!-- ============ WEEK ============ -->
+  <section class="view" id="view-week">
+    <div class="panel" style="margin-bottom:16px">
+      <div class="eyebrow" id="weekEyebrow">This week</div>
+      <h2 id="weekHeadline">Week —</h2>
+      <p class="muted" id="weekFocus" style="font-size:13.5px;margin:6px 0 0"></p>
+    </div>
+    <h3 class="section-title">Weekly production rhythm — batch, never improvise daily</h3>
+    <div class="tiles" id="rhythm"></div>
+    <h3 class="section-title">Every post this week</h3>
+    <div id="weekList"></div>
+  </section>
+
+  <!-- ============ ACADEMY (5-level pyramid) ============ -->
+  <section class="view" id="view-academy">
+    <div class="panel" style="margin-bottom:16px">
+      <div class="eyebrow">The learning journey</div>
+      <h2>From AI Awareness to AI Leadership</h2>
+      <p class="muted" style="font-size:13.5px;margin:6px 0 0;max-width:66ch">Most AI educators only teach Level 2. It's AI Education teaches all five — a full pyramid from individual fluency to enterprise transformation, mapped to certifications. Tap a level to expand its modules.</p>
+    </div>
+    <div id="pyramid"></div>
+    <h3 class="section-title">Content → revenue map</h3>
+    <div class="cols" id="revenueMap"></div>
+  </section>
+
+  <!-- ============ STRATEGY ============ -->
+  <section class="view" id="view-strategy">
+    <div class="panel" style="margin-bottom:16px">
+      <div class="eyebrow">Strategic brand & growth plan</div>
+      <h2>It's AI Education — Strategy</h2>
+      <p class="muted" style="font-size:13.5px;margin:6px 0 0;max-width:70ch">Close the gap between AI adoption and AI understanding. 75% of knowledge workers use AI at work; only 39% have had any training. Governance is the wedge — the weakest pillar across every competitor, with a regulatory deadline behind it.</p>
+    </div>
+
+    <div class="cols">
+      <div class="panel"><div class="def"><div class="lbl">Purpose</div><p>Close the gap between AI adoption and AI understanding. Teach the people most exposed — managers, HR, teachers, retail staff, SME owners — properly, in plain English, one small lesson at a time.</p></div>
+        <div class="def"><div class="lbl">Vision</div><p>Become the trusted plain-English authority on AI fluency & governance for non-technical professionals and SMEs across the GCC and beyond — from a faceless Instagram page into a face-led education platform delivering ebooks, consulting and courses from Dubai.</p></div></div>
+      <div class="panel"><div class="def"><div class="lbl">Mission</div><p>Make non-technical people confident and safe with AI. Every post solves exactly one small problem. Explain clearly what everyone else overcomplicates. Never hype, never fear, never jargon.</p></div>
+        <div class="def"><div class="lbl">Strategy</div><p>Masses-first for reach, SME-adjacent for revenue. Instagram stays faceless and builds reach; LinkedIn carries the face and closes the money; the email list is the asset that outlives both.</p></div></div>
+    </div>
+
+    <h3 class="section-title">The founder edge — Tony Thomas</h3>
+    <div class="panel">
+      <p style="font-size:14px;margin:0 0 10px;color:var(--ink-2)">20+ years in Learning & Development — retail L&D, talent development, leadership training, learning technology, performance improvement. Programs delivered across <b>158+ locations</b> at scale.</p>
+      <div class="cols">
+        <div><div class="def"><div class="lbl">Personal brand — Tony Thomas</div><p>"I help professionals and organizations become AI fluent and adopt AI responsibly." The trusted educator, practitioner and thought leader.</p></div></div>
+        <div><div class="def"><div class="lbl">Corporate brand — It's AI Education</div><p>"Making AI understandable, practical, and responsible for everyone." The platform for education, training, certification and consulting.</p></div></div>
+      </div>
+      <div class="def" style="margin-top:6px"><div class="lbl">Defensible position</div><p>Learning Science + AI Technology + Business Adoption. Unlike typical AI influencers, this combination is hard to replicate. Founder principle: <b>Tony is the brand; the AI avatar (HeyGen) is the assistant — not the other way around.</b></p></div>
+    </div>
+
+    <h3 class="section-title">Three strategic pillars</h3>
+    <div class="cols" id="pillars"></div>
+
+    <h3 class="section-title">Phased production plan</h3>
+    <div class="phase-row" id="phases"></div>
+
+    <h3 class="section-title">Future revenue model</h3>
+    <div class="cols" id="revenueStages"></div>
+
+    <h3 class="section-title">Non-negotiables</h3>
+    <div class="panel"><ul class="clean" id="nonneg"></ul></div>
+
+    <h3 class="section-title">Market signal</h3>
+    <div class="tiles" id="marketTiles"></div>
+  </section>
+
+  <!-- ============ GATE ============ -->
+  <section class="view" id="view-gate">
+    <div class="panel" style="margin-bottom:16px">
+      <div class="eyebrow">Gate to Phase 2 · by 31 Aug 2026</div>
+      <h2 id="gateVerdict">Phase 1 gate</h2>
+      <p class="muted" style="font-size:13px;margin:6px 0 0">All must be true to advance. If the gate fails: extend Phase 1 by 3 weeks. Do not launch a product into a flat audience. Update your numbers below — Jarvis reads them everywhere.</p>
+    </div>
+    <div class="panel" id="gateList"></div>
+    <h3 class="section-title">Update your metrics</h3>
+    <div class="panel" id="metricEditors"></div>
+  </section>
+
+  <!-- ============ LOG ============ -->
+  <section class="view" id="view-log">
+    <div class="panel" style="margin-bottom:16px">
+      <div class="eyebrow">Daily check-in</div>
+      <h2>Update Jarvis</h2>
+      <p class="muted" style="font-size:13px;margin:6px 0 0">Tell Jarvis what happened today, or log a change to the strategy or working plan. Everything here is remembered and feeds the daily brief.</p>
+      <div style="margin-top:14px">
+        <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+          <div class="toggle" id="logTypeToggle">
+            <button data-t="update" class="on">Daily update</button>
+            <button data-t="change">Strategy / plan change</button>
+            <button data-t="idea">Idea / hook</button>
+          </div>
+        </div>
+        <textarea id="logInput" rows="3" placeholder="e.g. Posted the ChatGPT-settings carousel at 8PM. 14 saves in the first hour — best yet."></textarea>
+        <div style="display:flex;justify-content:flex-end;margin-top:10px">
+          <button class="mini-btn primary" id="logSave">✎ Save to log</button>
+        </div>
+      </div>
+    </div>
+    <h3 class="section-title">History</h3>
+    <div id="logList"></div>
+  </section>
+
+  <!-- ============ SOCIAL ============ -->
+  <section class="view" id="view-social">
+    <div class="panel" style="margin-bottom:16px">
+      <div class="eyebrow">Phase 2 · live social intelligence</div>
+      <h2>Social command — coming online</h2>
+      <p class="muted" style="font-size:13.5px;margin:6px 0 0;max-width:70ch">Next build: Jarvis connects to every It's AI Education channel and reports live — reach, saves, follows, keyword→email captures — so you give the daily update by voice and get instant read-back on what's working. The channel roles below are already wired into Jarvis's knowledge.</p>
+    </div>
+    <div class="soc-grid" id="socialGrid"></div>
+    <div class="panel" style="margin-top:16px">
+      <div class="eyebrow">Manual entry — until APIs connect</div>
+      <p class="muted" style="font-size:12.5px;margin:2px 0 12px">Log a channel snapshot; Jarvis will track the trend and factor it into the gate.</p>
+      <div id="socialManual"></div>
+    </div>
+  </section>
+
+  <p class="footer-note">JARVIS v1 · knowledge synced to the It's AI Education strategy, Phase 1 working plan, day-by-day plan & learning framework · data lives in your browser only</p>
+</div>
+
+<!-- JARVIS CONSOLE -->
+<div class="console" id="console">
+  <div class="console-head"><span class="dotp"></span><b>Jarvis</b>
+    <span class="mono" style="font-size:10px;color:var(--ink-3);letter-spacing:1px" id="brainMode">LOCAL BRAIN</span>
+    <button class="x" onclick="Jarvis.toggleConsole(false)">✕</button></div>
+  <div class="msgs" id="msgs"></div>
+</div>
+
+<!-- DOCK -->
+<div class="dock">
+  <div class="dock-inner">
+    <button class="mic-btn" id="micBtn" title="Hold a conversation">🎙</button>
+    <input id="dockInput" placeholder="Ask Jarvis anything — “what's my plan today?”  “how am I doing?”  “read me the strategy”" autocomplete="off" />
+    <button class="icon-btn spk on" id="speakToggle" title="Jarvis voice on/off">🔊</button>
+    <button class="send-btn" id="sendBtn" title="Send">➤</button>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="modal" id="settingsModal">
+  <div class="card">
+    <h2>Jarvis settings</h2>
+    <p class="muted" style="font-size:12.5px;margin:4px 0 0">Everything is stored locally in this browser. Nothing is sent anywhere unless you add an API key.</p>
+
+    <div class="field">
+      <label>Your name</label>
+      <input id="setName" placeholder="Tony" />
+    </div>
+
+    <div class="field">
+      <label>Jarvis voice</label>
+      <select id="setVoice"></select>
+      <div class="hint">Uses your browser's built-in voices. Pick a British male voice for the full Jarvis effect.</div>
+    </div>
+
+    <div class="field">
+      <label>Speaking rate</label>
+      <input id="setRate" type="range" min="0.7" max="1.3" step="0.05" value="1" />
+    </div>
+
+    <div class="field">
+      <label>Claude API key — optional (unlocks full conversation)</label>
+      <input id="setKey" type="password" placeholder="sk-ant-…  leave blank to use the built-in brain" />
+      <div class="hint">Without a key, Jarvis runs a built-in brain that knows your whole plan and answers the common questions offline. Add an Anthropic key to let Jarvis discuss freely, give nuanced feedback and draft content. The key never leaves your browser. <b>Note:</b> live API calls need the app served from a normal web host — inside the preview sandbox Jarvis falls back to the local brain automatically.</div>
+    </div>
+    <div class="field">
+      <label>Model</label>
+      <select id="setModel">
+        <option value="claude-sonnet-5">Claude Sonnet 5 — fast, recommended</option>
+        <option value="claude-opus-4-8">Claude Opus 4.8 — deepest reasoning</option>
+        <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 — quickest</option>
+      </select>
+    </div>
+
+    <div class="modal-actions">
+      <button class="mini-btn" onclick="App.resetAll()">Reset all data</button>
+      <button class="mini-btn" onclick="Settings.close()">Cancel</button>
+      <button class="mini-btn primary" onclick="Settings.save()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   KNOWLEDGE BASE — synced from the four source documents
+   ============================================================ */
+const KB = {
+  brand:{
+    name:"It's AI Education", founder:"Tony Thomas",
+    tagline:"AI Fluency · Governance · Adoption",
+    promise:"From AI Awareness to AI Leadership.",
+    ig:"@itsaieducation",
+    personalPos:"I help professionals and organizations become AI fluent and adopt AI responsibly.",
+    corporatePos:"Making AI understandable, practical, and responsible for everyone.",
+  },
+  foundation:{
+    purpose:"Close the gap between AI adoption and AI understanding. 75% of knowledge workers use AI at work; only 39% have had any training. Teach the most-exposed people properly, in plain English, one small lesson at a time.",
+    vision:"Become the trusted plain-English authority on AI fluency and governance for non-technical professionals and SMEs — starting faceless on Instagram, growing into a face-led education platform from Dubai.",
+    mission:"Make non-technical people confident and safe with AI. Every post solves exactly one small problem. Never hype, never fear, never jargon.",
+    strategy:"Masses-first for reach, SME-adjacent for revenue. Instagram stays faceless and builds reach; LinkedIn carries the face and closes the money; the email list is the asset that outlives both. Governance is the wedge."
+  },
+  pillars:[
+    {n:"AI Fluency", o:"Help people understand AI fundamentals.", t:["What is AI?","Generative AI","AI Agents","Prompt Engineering","AI terminology","Capabilities & limitations"], a:"Beginners · professionals · managers · students"},
+    {n:"AI Governance", o:"Teach responsible AI usage — the differentiating wedge.", t:["AI policies","Data privacy","Risk management","Human oversight","Responsible AI","Compliance & ethics"], a:"Business leaders · HR · L&D · executives"},
+    {n:"AI Adoption", o:"Help organizations successfully implement AI.", t:["Change management","Workforce enablement","AI learning programs","Adoption frameworks","AI champions","Measuring adoption"], a:"Organizations · learning leaders · HR · managers"},
+  ],
+  pyramid:[
+    {lvl:1, name:"AI Fluency", cert:"AI Fluency Foundation", who:"Students · frontline · professionals · beginners",
+     obj:"Help learners understand AI.",
+     mods:["What is AI?","History of AI","Generative AI","Large Language Models","AI Agents","Future of Work","AI Myths & Reality"],
+     out:"Learners can explain AI confidently, understand key concepts and identify AI opportunities."},
+    {lvl:2, name:"AI Application", cert:"AI Practitioner", who:"Knowledge workers · managers · retail · entrepreneurs",
+     obj:"Teach practical AI usage.",
+     mods:["Prompt Engineering","ChatGPT Mastery","Claude","Perplexity","AI for Productivity","AI for Communication","AI for Research","AI for Content Creation"],
+     out:"Learners save time and improve productivity."},
+    {lvl:3, name:"AI Adoption", cert:"AI Adoption Specialist", who:"Managers · HR leaders · L&D · department heads",
+     obj:"Help teams and organizations adopt AI.",
+     mods:["AI Change Management","Building AI Culture","AI Learning Programs","AI Champions Network","Measuring Adoption","Workforce Transformation"],
+     out:"Organizations move from experimentation to implementation."},
+    {lvl:4, name:"AI Governance", cert:"AI Governance Professional", who:"Executives · compliance · HR · L&D · managers",
+     obj:"Ensure responsible AI usage.",
+     mods:["Responsible AI","AI Risk Management","Data Privacy","AI Policies","Human Oversight","AI Ethics","Governance Frameworks"],
+     out:"Organizations use AI safely and responsibly."},
+    {lvl:5, name:"AI Leadership", cert:"Certified AI Transformation Leader", who:"Directors · senior leaders · CEOs · entrepreneurs",
+     obj:"Create AI transformation leaders.",
+     mods:["AI Strategy","AI Business Models","Agentic Organizations","Future Workforce Design","AI Investment Decisions","Building AI-First Organizations"],
+     out:"Leaders can drive enterprise-wide AI transformation."},
+  ],
+  revenueMap:[
+    {ch:"Instagram", p:"Generate awareness — 30–60s lessons, tips, myth-busting.", g:"Move people into Level 1"},
+    {ch:"YouTube", p:"Deep learning — full lessons, tutorials, case studies.", g:"Move people into Levels 1–2"},
+    {ch:"Workshops", p:"Skill building, live.", g:"Move people into Level 3"},
+    {ch:"Corporate programs", p:"Organizational transformation.", g:"Move orgs into Levels 3–4"},
+    {ch:"Executive advisory", p:"Strategic transformation.", g:"Move leaders into Level 5"},
+  ],
+  revenueStages:[
+    {s:"Stage 1 · Audience", d:"Build reach on Instagram, YouTube & LinkedIn.", price:"Free"},
+    {s:"Stage 2 · Digital products", d:"AI Fluency Toolkit · Prompt Library · AI Governance Starter Kit.", price:"$19–49"},
+    {s:"Stage 3 · Corporate training", d:"AI Fluency / Governance / Adoption workshops.", price:"$500–5,000+/seat"},
+    {s:"Stage 4 · AI Education Academy", d:"Fluency, Governance & Adoption-Leader certifications.", price:"B2B licensing <$20k"},
+  ],
+  phases:[
+    {id:1, name:"Authority", when:"18 Jul – 31 Aug", obj:"Build reach and credibility. Zero selling. Stand up the email-capture layer.", out:"60–75 IG posts · 12 LinkedIn · 2 lead magnets"},
+    {id:2, name:"First Dollar", when:"September", obj:"Convert authority into first revenue with a low-risk digital product (ebook, $19–27).", out:"55–60 IG posts · 1 ebook · 25+ sales · 400+ subs"},
+    {id:3, name:"High-Ticket", when:"October", obj:"Complete the face handoff. Sell 1-1 time & SME consulting to the warm list.", out:"3–5 paid engagements · 2+ testimonials · 700+ subs"},
+    {id:4, name:"Scale", when:"Nov – Dec", obj:"Package repeated 1-1 answers into an e-learning course that sells without your time.", out:"Course + first cohort · 1,500+ subs · 3 revenue lines"},
+  ],
+  nonneg:[
+    "One small problem per post.",
+    "Faceless on Instagram, always.",
+    "Navy #0c1a2b, white text, max two accents (#5ab0ff aha / #ff7a59 stop). Watermark centred bottom.",
+    "Verify every governance claim against a primary source. Never fabricate a statistic.",
+    "Zero selling for the entire Phase 1.",
+    "Judge on trends across 10+ posts — never a single post."
+  ],
+  rules:{
+    postFormat:"Situation → Action (copy-paste or steps) → Proof (screenshot) → Name the concept last, one line → Transfer (\"use this on…\"). Hook must start with a verb.",
+    tests:"Verb test (hook starts with a verb) · 10-minute test (finishable before they put the phone down) · Screenshot test (a visible result to show).",
+    cadence:"1–2 posts/day. Reels 7–9 PM GST (to 10 PM Thu/Fri). Strongest days Tue–Thu + Sunday evening. Reply to every comment within 2 hours for the first 48 hours."
+  },
+  rhythm:[
+    {day:"Sunday", act:"Write", d:"7 hooks + 7 captions for the week. Verb-test every hook before design."},
+    {day:"Monday", act:"Design", d:"7 assets in Canva from the locked template. Carousels 1080×1350, reels 1080×1920."},
+    {day:"Tuesday", act:"Record", d:"Batch 3–4 reel voiceovers and screen recordings in one sitting."},
+    {day:"Wed–Sat", act:"Publish + engage", d:"Schedule 1–2/day. Reply to every comment <2h. Answer DMs manually until automation is proven."},
+    {day:"Friday", act:"Log (30 min)", d:"Fill the tracking sheet: save rate, watch time, follows, reach. No decisions, just data."},
+  ],
+  weeks:[
+    {w:0, range:"18–19 Jul", focus:"Pre-launch — setup only, nothing published. Batch the full 9-post opening grid; approve all 9 before post 1.", cta:"—"},
+    {w:1, range:"20–26 Jul", focus:"AI Alphabets — copy-paste prompts that work on day one. CTAs: Follow + Save only.", cta:"Follow + Save"},
+    {w:2, range:"27 Jul – 2 Aug", focus:"AI Alphabets → AI Words — accuracy & safety fixes. Repeat week 1's best-saved format.", cta:"Follow + Save"},
+    {w:3, range:"3–9 Aug", focus:"AI Words — one fix per post. 30-post review lands Sunday: rank by save rate, lock the top 3 hook patterns.", cta:"Follow + Save + first Share/Send"},
+    {w:4, range:"10–16 Aug", focus:"AI Sentences — build prompts live. Comment-keyword CTAs go live (test the DM flow twice yourself first).", cta:"Keyword on 1 in 4 → EU AI Act 1-pager"},
+    {w:5, range:"17–23 Aug", focus:"AI Sentences → AI Paragraphs — first workflows and the SME-adjacent turn. Build lead magnet 2 (AI tool audit checklist).", cta:"Keyword on 1 in 4 · Save on all checklists"},
+    {w:6, range:"24–31 Aug", focus:"AI Paragraphs → first AI Essays — governance in plain English, then the phase gate.", cta:"Keyword on 1 in 3 · Follow on reach posts"},
+  ],
+  gate:[
+    {key:"posts", label:"40+ posts published", sub:"target 60–75", target:40, stretch:65, unit:"", type:"num"},
+    {key:"subs", label:"150+ email subscribers", sub:"the list is the asset", target:150, stretch:150, unit:"", type:"num"},
+    {key:"linkedin", label:"LinkedIn live with 12+ posts", sub:"the credibility surface", target:12, stretch:12, unit:"", type:"num"},
+    {key:"outsized", label:"3+ posts with outsized reach", sub:"repeatable hooks identified", target:3, stretch:3, unit:"", type:"num"},
+    {key:"saveTrend", label:"Save rate trending up over last 10 posts", sub:"the #1 early signal", type:"bool"},
+    {key:"ebook", label:"Ebook outline drafted", sub:"from proven, high-save content", type:"bool"},
+    {key:"dm", label:"DM automation delivering reliably", sub:"tested end-to-end (ManyChat)", type:"bool"},
+  ],
+  market:[
+    {v:"75%", k:"knowledge workers use AI"},
+    {v:"39%", k:"got any AI training"},
+    {v:"70.1%", k:"UAE AI adoption — #1 globally"},
+    {v:"~82%", k:"completion instructor-led vs 19% self-paced"},
+    {v:"Aug 2026", k:"EU AI Act full application"},
+    {v:"$6.9–18.9B", k:"AI-in-education market"},
+  ],
+  channels:[
+    {net:"Instagram", role:"Reach & trust for the individual. Faceless. 1–2 posts/day, reels 7–9 PM GST."},
+    {net:"LinkedIn", role:"Revenue driver for SME & corporate. Face-led — Tony, IAPP AIGP status. 2–5 posts/week."},
+    {net:"YouTube", role:"Authority building. 2–3 Shorts + 1 long-form per week."},
+    {net:"Email + community", role:"Conversion & retention moat — the asset that outlives the feeds."},
+  ],
+  // ---- Full day-by-day plan (65 posts) ----
+  daily:[
+    {d:"2026-07-18", wd:"Sat", lvl:"", fmt:"Build", hook:"Bio, profile picture, highlight covers. Install ManyChat. Build the EU AI Act 1-pager. Create the tracking sheet.", cta:"", time:""},
+    {d:"2026-07-19", wd:"Sun", lvl:"", fmt:"Build", hook:"Batch & approve all 9 opening grid posts. Publish LinkedIn profile — name, face, IAPP AIGP status. Write Week 1 captions.", cta:"", time:""},
+    {d:"2026-07-20", wd:"Mon", lvl:"Alphabets", fmt:"Carousel", hook:"Paste this line into every AI chat before you type anything else.", cta:"Save", time:"8 PM"},
+    {d:"2026-07-20", wd:"Mon", lvl:"Alphabets", fmt:"Reel", hook:"Fix a vague AI answer with one added sentence.", cta:"Follow", time:"1 PM"},
+    {d:"2026-07-21", wd:"Tue", lvl:"Alphabets", fmt:"Carousel", hook:"Change these 3 settings before you use ChatGPT again.", cta:"Save", time:"8 PM"},
+    {d:"2026-07-21", wd:"Tue", lvl:"Alphabets", fmt:"Reel", hook:"Rewrite one work email in 60 seconds — watch the before and after.", cta:"Follow", time:"1 PM"},
+    {d:"2026-07-22", wd:"Wed", lvl:"Alphabets", fmt:"Carousel", hook:"Copy these 5 prompts that work on your first day.", cta:"Save", time:"8 PM"},
+    {d:"2026-07-22", wd:"Wed", lvl:"Alphabets", fmt:"Text", hook:"Ask for the format before you ask for the answer.", cta:"Follow", time:"1 PM"},
+    {d:"2026-07-23", wd:"Thu", lvl:"Alphabets", fmt:"Reel", hook:"Turn a messy voice note into clean meeting notes.", cta:"Save", time:"8 PM"},
+    {d:"2026-07-23", wd:"Thu", lvl:"Alphabets", fmt:"Carousel", hook:"Stop AI writing like a robot — the one instruction that fixes it.", cta:"Save", time:"1 PM"},
+    {d:"2026-07-24", wd:"Fri", lvl:"Alphabets", fmt:"Reel", hook:"Check any AI answer in 30 seconds — 3 quick checks.", cta:"Save", time:"9 PM"},
+    {d:"2026-07-25", wd:"Sat", lvl:"", fmt:"Engage", hook:"No post. Reply to every comment from the week. Note which of the 9 got saved most.", cta:"", time:""},
+    {d:"2026-07-26", wd:"Sun", lvl:"Alphabets", fmt:"Text", hook:"Try one of these this week and tell me which answer changed.", cta:"Comment", time:"8 PM"},
+    {d:"2026-07-27", wd:"Mon", lvl:"Words", fmt:"Carousel", hook:"Stop AI inventing numbers — add this sentence to every prompt.", cta:"Save", time:"8 PM"},
+    {d:"2026-07-28", wd:"Tue", lvl:"Words", fmt:"Reel", hook:"Make AI show you where it got that from.", cta:"Save", time:"8 PM"},
+    {d:"2026-07-28", wd:"Tue", lvl:"Words", fmt:"Carousel", hook:"Never paste these 6 things into a free AI tool.", cta:"Share", time:"1 PM"},
+    {d:"2026-07-29", wd:"Wed", lvl:"Words", fmt:"Reel", hook:"Spot a confident wrong answer before you send it on.", cta:"Save", time:"8 PM"},
+    {d:"2026-07-30", wd:"Thu", lvl:"Words", fmt:"Carousel", hook:"Summarise a 20-page document without losing the numbers.", cta:"Save", time:"8 PM"},
+    {d:"2026-07-30", wd:"Thu", lvl:"Words", fmt:"Text", hook:"Hallucination isn't a setting you can switch off. Here's what to do instead.", cta:"Follow", time:"1 PM"},
+    {d:"2026-07-31", wd:"Fri", lvl:"Words", fmt:"Reel", hook:"Give AI a role and watch the answer change.", cta:"Save", time:"9 PM"},
+    {d:"2026-08-01", wd:"Sat", lvl:"", fmt:"Engage", hook:"No post. Comment replies + log the week.", cta:"", time:""},
+    {d:"2026-08-02", wd:"Sun", lvl:"Words", fmt:"Text", hook:"Send this to the colleague who trusts AI a bit too much.", cta:"Share", time:"8 PM"},
+    {d:"2026-08-02", wd:"Sun", lvl:"Words", fmt:"Carousel", hook:"Your first AI safety rule: strip the names before you paste.", cta:"Save", time:"1 PM"},
+    {d:"2026-08-03", wd:"Mon", lvl:"Words", fmt:"Carousel", hook:"Shorten a long document safely — 3 steps.", cta:"Save", time:"8 PM"},
+    {d:"2026-08-04", wd:"Tue", lvl:"Words", fmt:"Reel", hook:"Turn messy notes into minutes your team will actually read.", cta:"Save", time:"8 PM"},
+    {d:"2026-08-04", wd:"Tue", lvl:"Words", fmt:"Carousel", hook:"Ask AI to grade its own answer — then read what it admits.", cta:"Save", time:"1 PM"},
+    {d:"2026-08-05", wd:"Wed", lvl:"Words", fmt:"Reel", hook:"Notice when a long chat starts going strange — and reset it.", cta:"Follow", time:"8 PM"},
+    {d:"2026-08-06", wd:"Thu", lvl:"Words", fmt:"Carousel", hook:"Start a fresh chat — the 4 moments it's worth it.", cta:"Save", time:"8 PM"},
+    {d:"2026-08-06", wd:"Thu", lvl:"Words", fmt:"Text", hook:"Context window, in one sentence you'll remember.", cta:"Follow", time:"1 PM"},
+    {d:"2026-08-07", wd:"Fri", lvl:"Words", fmt:"Reel", hook:"Catch a fake source in 20 seconds.", cta:"Save", time:"9 PM"},
+    {d:"2026-08-08", wd:"Sat", lvl:"", fmt:"Review", hook:"No post. 30-post review: rank by save rate, identify the top 3 hook patterns. Everything after this copies them.", cta:"", time:""},
+    {d:"2026-08-09", wd:"Sun", lvl:"Words", fmt:"Carousel", hook:"Run these 3 checks before you send AI work to your boss.", cta:"Save", time:"8 PM"},
+    {d:"2026-08-09", wd:"Sun", lvl:"Words", fmt:"Text", hook:"Three weeks in — the 5 fixes that changed my AI answers most.", cta:"Follow", time:"1 PM"},
+    {d:"2026-08-10", wd:"Mon", lvl:"Sentences", fmt:"Carousel", hook:"Build a prompt with me — frame by frame, start to finish.", cta:"Save", time:"8 PM"},
+    {d:"2026-08-11", wd:"Tue", lvl:"Sentences", fmt:"Reel", hook:"Remember this 4-part prompt shape and you'll never blank again.", cta:"Save", time:"8 PM"},
+    {d:"2026-08-11", wd:"Tue", lvl:"Sentences", fmt:"Carousel", hook:"Make one prompt template your whole team reuses.", cta:"KEYWORD \"PROMPT\"", time:"1 PM"},
+    {d:"2026-08-12", wd:"Wed", lvl:"Sentences", fmt:"Reel", hook:"Give AI a limit, not just a task.", cta:"Save", time:"8 PM"},
+    {d:"2026-08-12", wd:"Wed", lvl:"Sentences", fmt:"Text", hook:"Vague in, vague out. Here's the one word to add.", cta:"Follow", time:"1 PM"},
+    {d:"2026-08-13", wd:"Thu", lvl:"Sentences", fmt:"Carousel", hook:"Ask for the output format up front — 6 formats to name.", cta:"Save", time:"8 PM"},
+    {d:"2026-08-13", wd:"Thu", lvl:"Sentences", fmt:"Reel", hook:"Turn a bad answer good with one follow-up line.", cta:"Save", time:"1 PM"},
+    {d:"2026-08-14", wd:"Fri", lvl:"Sentences", fmt:"Reel", hook:"Write a job ad in 5 minutes that doesn't sound generic.", cta:"Save", time:"9 PM"},
+    {d:"2026-08-15", wd:"Sat", lvl:"Sentences", fmt:"Text", hook:"Save this prompt structure — you'll use it every week.", cta:"Save", time:"8 PM"},
+    {d:"2026-08-16", wd:"Sun", lvl:"Sentences", fmt:"Carousel", hook:"Use these 5 prompts if you manage people.", cta:"KEYWORD \"PROMPT\"", time:"8 PM"},
+    {d:"2026-08-16", wd:"Sun", lvl:"Sentences", fmt:"Reel", hook:"Stop rewriting the same prompt — save it once, reuse it forever.", cta:"Save", time:"1 PM"},
+    {d:"2026-08-16", wd:"Sun", lvl:"", fmt:"Build", hook:"Start lead magnet 2: AI tool audit checklist. Begin the ebook outline from top-saved posts.", cta:"", time:""},
+    {d:"2026-08-17", wd:"Mon", lvl:"Paragraphs", fmt:"Carousel", hook:"Run one workflow end to end: inbox → summary → action list.", cta:"Save", time:"8 PM"},
+    {d:"2026-08-18", wd:"Tue", lvl:"Paragraphs", fmt:"Reel", hook:"Audit an AI tool before you let your team use it.", cta:"Save", time:"8 PM"},
+    {d:"2026-08-18", wd:"Tue", lvl:"Paragraphs", fmt:"Carousel", hook:"Ask any AI vendor these 5 questions before you sign.", cta:"KEYWORD \"AUDIT\"", time:"1 PM"},
+    {d:"2026-08-19", wd:"Wed", lvl:"Paragraphs", fmt:"Reel", hook:"Put a human in these 3 moments — nowhere else needed.", cta:"Save", time:"8 PM"},
+    {d:"2026-08-19", wd:"Wed", lvl:"Paragraphs", fmt:"Text", hook:"Human-in-the-loop, without the consultant language.", cta:"Follow", time:"1 PM"},
+    {d:"2026-08-20", wd:"Thu", lvl:"Paragraphs", fmt:"Carousel", hook:"Write the 5 sentences that become your AI use policy.", cta:"KEYWORD \"POLICY\"", time:"8 PM"},
+    {d:"2026-08-20", wd:"Thu", lvl:"Paragraphs", fmt:"Reel", hook:"Do this first when AI gets something wrong at work.", cta:"Save", time:"1 PM"},
+    {d:"2026-08-21", wd:"Fri", lvl:"Paragraphs", fmt:"Reel", hook:"Check an AI tool's data settings in 2 minutes.", cta:"Save", time:"9 PM"},
+    {d:"2026-08-22", wd:"Sat", lvl:"Paragraphs", fmt:"Text", hook:"Ask your AI vendor this one question and watch them pause.", cta:"Share", time:"8 PM"},
+    {d:"2026-08-23", wd:"Sun", lvl:"Paragraphs", fmt:"Carousel", hook:"Work through the AI tool audit checklist on a tool you already use.", cta:"KEYWORD \"AUDIT\"", time:"8 PM"},
+    {d:"2026-08-23", wd:"Sun", lvl:"Paragraphs", fmt:"Reel", hook:"Show your team where AI stops and they start.", cta:"Save", time:"1 PM"},
+    {d:"2026-08-23", wd:"Sun", lvl:"", fmt:"Build", hook:"Lead magnet 2 live and mapped to AUDIT. Ebook outline halfway.", cta:"", time:""},
+    {d:"2026-08-24", wd:"Mon", lvl:"Essays", fmt:"Carousel", hook:"Fill in a one-page AI policy with me — line by line.", cta:"KEYWORD \"POLICY\"", time:"8 PM"},
+    {d:"2026-08-25", wd:"Tue", lvl:"Essays", fmt:"Reel", hook:"Decide who owns the risk when AI gets it wrong.", cta:"Save", time:"8 PM"},
+    {d:"2026-08-25", wd:"Tue", lvl:"Essays", fmt:"Carousel", hook:"Sort what your team does with AI into 3 risk buckets.", cta:"KEYWORD \"EUACT\"", time:"1 PM"},
+    {d:"2026-08-26", wd:"Wed", lvl:"Essays", fmt:"Reel", hook:"Check whether the EU AI Act applies to you — 3 questions.", cta:"Save", time:"8 PM"},
+    {d:"2026-08-26", wd:"Wed", lvl:"Essays", fmt:"Text", hook:"You don't need a lawyer for this part. You need one page.", cta:"Follow", time:"1 PM"},
+    {d:"2026-08-27", wd:"Thu", lvl:"Essays", fmt:"Carousel", hook:"Keep this one record and most of your AI paperwork is done.", cta:"Save", time:"8 PM"},
+    {d:"2026-08-27", wd:"Thu", lvl:"Essays", fmt:"Reel", hook:"Explain AI risk to your boss in 30 seconds.", cta:"Share", time:"1 PM"},
+    {d:"2026-08-28", wd:"Fri", lvl:"Essays", fmt:"Reel", hook:"Train your team in 20 minutes — here's the outline.", cta:"KEYWORD \"EUACT\"", time:"9 PM"},
+    {d:"2026-08-29", wd:"Sat", lvl:"Essays", fmt:"Text", hook:"The question I've been asked most in six weeks — answered properly.", cta:"Comment", time:"8 PM"},
+    {d:"2026-08-30", wd:"Sun", lvl:"Mixed", fmt:"Carousel", hook:"Repost of the best-performing lesson, rebuilt in a new format.", cta:"Save", time:"8 PM"},
+    {d:"2026-08-30", wd:"Sun", lvl:"Mixed", fmt:"Reel", hook:"Start here if you've just found this page.", cta:"Follow", time:"1 PM"},
+    {d:"2026-08-31", wd:"Mon", lvl:"Mixed", fmt:"Carousel", hook:"Six weeks in — the 10 things that actually changed how you use AI.", cta:"Save", time:"8 PM"},
+    {d:"2026-08-31", wd:"Mon", lvl:"", fmt:"Gate", hook:"Phase gate review. 40+ posts · save rate up · 150+ subscribers · 3+ outsized-reach · ebook outline done · DM reliable · LinkedIn 12+.", cta:"", time:""},
+  ],
+  endResult:[
+    ["Do I understand AI?","AI Fluency"],["Can I use AI?","AI Application"],
+    ["Can my team adopt AI?","AI Adoption"],["Can we govern AI responsibly?","AI Governance"],
+    ["Can I lead AI transformation?","AI Leadership"]
+  ]
+};
+KB.daily.forEach((p,i)=>p.id="p"+i);
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const DEFAULT_STATE = {
+  name:"Tony",
+  done:{},
+  metrics:{posts:0, subs:0, linkedin:0, outsized:0, saveTrend:false, ebook:false, dm:false},
+  logs:[],
+  social:{},
+  settings:{apiKey:"", model:"claude-sonnet-5", voiceURI:"", rate:1, speak:true, theme:""}
+};
+const LS_KEY="itsai_jarvis_v1";
+let State = load();
+function load(){ try{ const s=JSON.parse(localStorage.getItem(LS_KEY)); return s?deepMerge(structuredClone(DEFAULT_STATE),s):structuredClone(DEFAULT_STATE);}catch(e){return structuredClone(DEFAULT_STATE);} }
+function save(){ localStorage.setItem(LS_KEY, JSON.stringify(State)); }
+function deepMerge(t,s){ for(const k in s){ if(s[k]&&typeof s[k]==="object"&&!Array.isArray(s[k])){ t[k]=deepMerge(t[k]||{},s[k]);} else t[k]=s[k]; } return t; }
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function iso(d){ return d.toISOString().slice(0,10); }
+function todayISO(){
+  // Use real date; if outside plan window, clamp to nearest plan day for a useful demo.
+  const now=new Date(); const t=iso(now);
+  const first=KB.daily[0].d, last=KB.daily[KB.daily.length-1].d;
+  if(t<first) return first; if(t>last) return last; return t;
+}
+function fmtDateLabel(isoStr){ const d=new Date(isoStr+"T00:00:00"); return d.toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"}); }
+function postsFor(isoStr){ return KB.daily.filter(p=>p.d===isoStr); }
+function weekOf(isoStr){
+  // derive week index from date ranges
+  const map=[
+    ["2026-07-18","2026-07-19",0],["2026-07-20","2026-07-26",1],["2026-07-27","2026-08-02",2],
+    ["2026-08-03","2026-08-09",3],["2026-08-10","2026-08-16",4],["2026-08-17","2026-08-23",5],["2026-08-24","2026-08-31",6]
+  ];
+  for(const [a,b,w] of map){ if(isoStr>=a&&isoStr<=b) return w; }
+  return 1;
+}
+function toast(m){ const t=$("#toast"); t.textContent=m; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),2200); }
+
+/* progress computations */
+function gateStatus(){
+  const m=State.metrics; const res={};
+  res.posts   = pct(m.posts,40);
+  res.subs    = pct(m.subs,150);
+  res.linkedin= pct(m.linkedin,12);
+  res.outsized= pct(m.outsized,3);
+  res.saveTrend = m.saveTrend?100:0;
+  res.ebook   = m.ebook?100:0;
+  res.dm      = m.dm?100:0;
+  const vals=[res.posts,res.subs,res.linkedin,res.outsized,res.saveTrend,res.ebook,res.dm];
+  res.overall = Math.round(vals.reduce((a,b)=>a+b,0)/vals.length);
+  res.metCount = vals.filter(v=>v>=100).length;
+  return res;
+}
+function pct(v,t){ return Math.max(0,Math.min(100,Math.round((v/t)*100))); }
+function publishedCount(){ return Object.keys(State.done).filter(k=>State.done[k]&&KB.daily.find(p=>p.id===k&&p.time)).length; }
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+const App = {
+  view:"command",
+  go(v){
+    this.view=v;
+    $$("#nav button").forEach(b=>b.classList.toggle("active",b.dataset.view===v));
+    $$(".view").forEach(s=>s.classList.toggle("active",s.id==="view-"+v));
+    window.scrollTo({top:0,behavior:"smooth"});
+    if(v==="today") this.renderToday();
+    if(v==="week") this.renderWeek();
+    if(v==="gate") this.renderGate();
+    if(v==="log") this.renderLog();
+  },
+  renderAll(){
+    this.renderCommand(); this.renderToday(); this.renderWeek();
+    this.renderAcademy(); this.renderStrategy(); this.renderGate(); this.renderLog(); this.renderSocial();
+    $("#navToday").textContent = postsFor(todayISO()).filter(p=>p.time).length;
+  },
+
+  renderCommand(){
+    const t=todayISO(), w=weekOf(t), wk=KB.weeks[w];
+    const name=State.name||"Tony";
+    const hr=new Date().getHours();
+    const salut = hr<12?"Good morning":hr<17?"Good afternoon":"Good evening";
+    $("#dayContext").textContent = `Phase 1 · Authority · Week ${w} — ${wk.focus.split("—")[0].trim()}`;
+    $("#greetLine").textContent = `${salut}, ${name}.`;
+    const posts=postsFor(t).filter(p=>p.time);
+    const g=gateStatus();
+    $("#greetLead").innerHTML = posts.length
+      ? `You're in <b>Week ${w}</b>. ${posts.length} post${posts.length>1?"s":""} scheduled today. The list stands at <b>${State.metrics.subs}</b> of 150 subscribers and <b>${g.metCount}/7</b> gate conditions are met.`
+      : `${fmtDateLabel(t)} is a build/engage day — no posts scheduled. ${g.metCount}/7 gate conditions met so far.`;
+    $("#todayDateLabel").textContent = fmtDateLabel(t);
+
+    // hero pills
+    $("#heroPills").innerHTML = [
+      `<span class="pill cyan">◷ Week ${w} · ${esc(wk.range)}</span>`,
+      `<span class="pill">Focus: <b>${esc(wk.focus.split("—")[0].trim())}</b></span>`,
+      `<span class="pill">Gate: <b>${g.metCount}/7</b> met</span>`
+    ].join("");
+
+    // today snapshot
+    $("#commandToday").innerHTML = posts.length
+      ? posts.map(p=>this.taskHTML(p)).join("")
+      : `<div class="panel"><p class="muted" style="margin:0">${esc(postsFor(t)[0]?.hook || "Rest / engagement day.")}</p></div>`;
+
+    // KPIs
+    const kpis=[
+      {k:"Posts published", v:State.metrics.posts, sub:"/ 40 gate · 65 planned", p:g.posts, cls:g.posts>=100?"good":g.posts>=60?"warn":"crit"},
+      {k:"Email subscribers", v:State.metrics.subs, sub:"/ 150 to pass", p:g.subs, cls:g.subs>=100?"good":g.subs>=50?"warn":"crit"},
+      {k:"LinkedIn posts", v:State.metrics.linkedin, sub:"/ 12", p:g.linkedin, cls:g.linkedin>=100?"good":"warn"},
+      {k:"Outsized-reach posts", v:State.metrics.outsized, sub:"/ 3 repeatable hooks", p:g.outsized, cls:g.outsized>=100?"good":"warn"},
+    ];
+    $("#commandKPIs").innerHTML = kpis.map(x=>`
+      <div class="tile ${x.cls}"><div class="stripe"></div>
+        <div class="k">${x.k}</div>
+        <div class="v tnum">${x.v}<small> ${esc(x.sub)}</small></div>
+        <div class="meter ${x.cls}"><i style="width:${x.p}%"></i></div>
+      </div>`).join("");
+  },
+
+  taskHTML(p){
+    const done=!!State.done[p.id];
+    const fmtCls=p.fmt.toLowerCase();
+    const isKw=/KEYWORD/.test(p.cta);
+    return `<div class="task ${done?"done":""}" data-id="${p.id}">
+      <button class="check" onclick="App.toggle('${p.id}')">✓</button>
+      <div class="task-body">
+        <div class="hook">${esc(p.hook)}</div>
+        <div class="meta">
+          ${p.time?`<span class="tag time">◷ ${esc(p.time)}</span>`:""}
+          <span class="tag ${fmtCls}">${esc(p.fmt)}</span>
+          ${p.lvl?`<span class="tag">${esc(p.lvl)}</span>`:""}
+          ${p.cta?`<span class="tag ${isKw?"keyword":"cta"}">${esc(p.cta)}</span>`:""}
+        </div>
+      </div>
+    </div>`;
+  },
+  toggle(id){
+    State.done[id]=!State.done[id];
+    // auto-sync published count into metrics if user hasn't manually set higher
+    const pc=publishedCount();
+    if(pc>State.metrics.posts) State.metrics.posts=pc;
+    save(); this.renderCommand(); this.renderToday(); this.renderGate();
+    $("#navToday").textContent = postsFor(todayISO()).filter(p=>p.time).length;
+  },
+
+  renderToday(){
+    const t=todayISO(), w=weekOf(t), wk=KB.weeks[w];
+    const posts=postsFor(t);
+    $("#todayHeadline").textContent = `${fmtDateLabel(t)} · Week ${w}`;
+    $("#todaySub").innerHTML = `${esc(wk.focus)} <br><span style="color:var(--cyan)">CTA mix: ${esc(wk.cta)}</span>`;
+    $("#todayList").innerHTML = posts.length
+      ? posts.map(p=>this.taskHTML(p)).join("")
+      : `<div class="panel"><p class="muted">No items for today.</p></div>`;
+  },
+
+  renderWeek(){
+    const t=todayISO(), w=weekOf(t), wk=KB.weeks[w];
+    $("#weekEyebrow").textContent = `Week ${w} · ${wk.range}`;
+    $("#weekHeadline").textContent = `Week ${w} — ${wk.focus.split("—")[0].trim()}`;
+    $("#weekFocus").innerHTML = `${esc(wk.focus)} <br><span style="color:var(--cyan)">CTA mix: ${esc(wk.cta)}</span>`;
+    $("#rhythm").innerHTML = KB.rhythm.map(r=>`
+      <div class="tile"><div class="stripe"></div>
+        <div class="k">${esc(r.day)}</div>
+        <div class="v" style="font-size:16px">${esc(r.act)}</div>
+        <div class="foot">${esc(r.d)}</div></div>`).join("");
+    // list this week's posts
+    const map=[["2026-07-18","2026-07-19"],["2026-07-20","2026-07-26"],["2026-07-27","2026-08-02"],["2026-08-03","2026-08-09"],["2026-08-10","2026-08-16"],["2026-08-17","2026-08-23"],["2026-08-24","2026-08-31"]];
+    const [a,b]=map[w];
+    const items=KB.daily.filter(p=>p.d>=a&&p.d<=b);
+    let html="", lastDay="";
+    items.forEach(p=>{
+      if(p.d!==lastDay){ html+=`<h3 class="section-title" style="margin-top:18px">${esc(fmtDateLabel(p.d))}</h3>`; lastDay=p.d; }
+      html+=this.taskHTML(p);
+    });
+    $("#weekList").innerHTML=html;
+  },
+
+  renderAcademy(){
+    $("#pyramid").innerHTML = KB.pyramid.slice().reverse().map((L,i)=>`
+      <div class="level" onclick="this.classList.toggle('open')">
+        <div class="level-head">
+          <div class="level-num">${L.lvl}</div>
+          <div>
+            <h3>Level ${L.lvl} · ${esc(L.name)}</h3>
+            <div class="cert">◈ ${esc(L.cert)}</div>
+            <div class="who">${esc(L.who)}</div>
+          </div>
+          <div class="caret">▾</div>
+        </div>
+        <div class="level-body">
+          <p class="muted" style="font-size:13px;margin:0 0 6px">${esc(L.obj)}</p>
+          <div class="mods">${L.mods.map((m,j)=>`<span class="mod"><b>M${j+1}</b>${esc(m)}</span>`).join("")}</div>
+          <div class="outcome">${esc(L.out)}</div>
+        </div>
+      </div>`).join("");
+    // color the num by level order (CSS nth-child works on original order; reversed here) — fix via inline
+    $$("#pyramid .level").forEach(el=>{
+      const n=+$(".level-num",el).textContent;
+      const col=["#5ab0ff","#4fc3c9","#3dd7a0","#ffcf5c","#ff7a59"][n-1];
+      $(".level-num",el).style.background=col;
+    });
+    $("#revenueMap").innerHTML = KB.revenueMap.map(r=>`
+      <div class="panel" style="padding:14px 16px">
+        <div class="lbl" style="font-family:var(--mono);font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--cyan);margin-bottom:5px">${esc(r.ch)}</div>
+        <p style="margin:0 0 8px;font-size:13px;color:var(--ink-2)">${esc(r.p)}</p>
+        <div class="pill cyan">→ ${esc(r.g)}</div>
+      </div>`).join("");
+  },
+
+  renderStrategy(){
+    $("#pillars").innerHTML = KB.pillars.map(p=>`
+      <div class="panel">
+        <div class="eyebrow">${esc(p.n)}</div>
+        <p class="muted" style="font-size:13px;margin:0 0 8px">${esc(p.o)}</p>
+        <div class="mods">${p.t.map(t=>`<span class="mod">${esc(t)}</span>`).join("")}</div>
+        <div class="foot" style="font-size:11.5px;color:var(--ink-3);margin-top:8px">Audience: ${esc(p.a)}</div>
+      </div>`).join("");
+    const t=todayISO();
+    $("#phases").innerHTML = KB.phases.map(ph=>`
+      <div class="phase p${ph.id} ${ph.id===1?"current":""}">
+        <h4>Phase ${ph.id} · ${esc(ph.name)} ${ph.id===1?'<span class="live">CURRENT</span>':""}<span class="when" style="float:right">${esc(ph.when)}</span></h4>
+        <p>${esc(ph.obj)}</p>
+        <p style="color:var(--ink-3)">Output: ${esc(ph.out)}</p>
+      </div>`).join("");
+    $("#revenueStages").innerHTML = KB.revenueStages.map(s=>`
+      <div class="panel" style="padding:14px 16px">
+        <div class="eyebrow">${esc(s.s)}</div>
+        <p class="muted" style="font-size:13px;margin:0 0 8px">${esc(s.d)}</p>
+        <div class="pill cyan">${esc(s.price)}</div>
+      </div>`).join("");
+    $("#nonneg").innerHTML = KB.nonneg.map(n=>`<li>${esc(n)}</li>`).join("");
+    $("#marketTiles").innerHTML = KB.market.map(m=>`
+      <div class="tile"><div class="stripe"></div><div class="v" style="font-size:22px">${esc(m.v)}</div><div class="foot">${esc(m.k)}</div></div>`).join("");
+  },
+
+  renderGate(){
+    const g=gateStatus();
+    $("#gateVerdict").innerHTML = `Phase 1 gate — <span style="color:${g.metCount>=7?'var(--good)':g.metCount>=4?'var(--warn)':'var(--crit)'}">${g.metCount}/7 conditions met</span>`;
+    $("#gateList").innerHTML = KB.gate.map(item=>{
+      let val, p, status, stTxt;
+      if(item.type==="num"){
+        const mv = State.metrics[item.key];
+        val = `${mv} / ${item.target}`; p=pct(mv,item.target);
+        status = p>=100?"met":p>=60?"near":"off"; stTxt=p>=100?"Met":p>=60?"Close":"Building";
+      } else {
+        const on=State.metrics[item.key]; val=on?"Done":"Not yet"; p=on?100:6;
+        status=on?"met":"off"; stTxt=on?"Met":"To do";
+      }
+      return `<div class="gate-item">
+        <div class="g-label">${esc(item.label)}</div>
+        <div class="g-status ${status}">${stTxt}</div>
+        <div class="g-sub">${esc(item.sub)}</div>
+        <div class="meter ${status==='met'?'good':status==='near'?'warn':'crit'}"><i style="width:${p}%"></i></div>
+      </div>`;
+    }).join("");
+
+    // editors
+    const numFields=[["posts","Posts published"],["subs","Email subscribers"],["linkedin","LinkedIn posts"],["outsized","Outsized-reach posts"]];
+    const boolFields=[["saveTrend","Save rate trending up (last 10)"],["ebook","Ebook outline drafted"],["dm","DM automation reliable"]];
+    $("#metricEditors").innerHTML =
+      numFields.map(([k,l])=>`
+        <div class="metric-edit">
+          <span style="flex:1;font-size:13.5px">${esc(l)}</span>
+          <input type="number" min="0" value="${State.metrics[k]}" onchange="App.setMetric('${k}',this.value)">
+        </div>`).join("") +
+      boolFields.map(([k,l])=>`
+        <div class="metric-edit">
+          <span style="flex:1;font-size:13.5px">${esc(l)}</span>
+          <div class="toggle">
+            <button class="${State.metrics[k]?'on':''}" onclick="App.setBool('${k}',true)">Yes</button>
+            <button class="${!State.metrics[k]?'':''}" onclick="App.setBool('${k}',false)">No</button>
+          </div>
+        </div>`).join("");
+  },
+  setMetric(k,v){ State.metrics[k]=Math.max(0,parseInt(v)||0); save(); this.renderGate(); this.renderCommand(); },
+  setBool(k,v){ State.metrics[k]=v; save(); this.renderGate(); this.renderCommand(); toast(v?"Marked done ✓":"Marked not-yet"); },
+
+  renderLog(){
+    const logs=State.logs;
+    $("#logList").innerHTML = logs.length
+      ? logs.map(l=>`<div class="log-entry">
+          <div class="when">${esc(l.when)} <span class="tp">${esc(l.type)}</span></div>
+          <p>${esc(l.text)}</p></div>`).join("")
+      : `<div class="panel"><p class="muted" style="margin:0">No entries yet. Tell Jarvis how today went, or log a change to the plan — everything here feeds tomorrow's brief.</p></div>`;
+  },
+  renderSocial(){
+    $("#socialGrid").innerHTML = KB.channels.map(c=>`
+      <div class="soc"><span class="soon">Phase 2</span>
+        <div class="net">${esc(c.net)}</div>
+        <div class="role">${esc(c.role)}</div>
+      </div>`).join("");
+    const nets=["Instagram followers","Instagram avg saves","LinkedIn followers","Email subscribers"];
+    $("#socialManual").innerHTML = nets.map((n,i)=>`
+      <div class="metric-edit">
+        <span style="flex:1;font-size:13.5px">${esc(n)}</span>
+        <input type="number" min="0" value="${State.social['s'+i]||0}" onchange="App.setSocial(${i},this.value)">
+      </div>`).join("");
+  },
+  setSocial(i,v){ State.social['s'+i]=Math.max(0,parseInt(v)||0); if(i===3){State.metrics.subs=State.social['s3'];} save(); toast("Snapshot saved"); this.renderCommand(); this.renderGate(); },
+
+  resetAll(){
+    if(confirm("Reset all Jarvis data (tasks, metrics, logs, settings)? This cannot be undone.")){
+      localStorage.removeItem(LS_KEY); State=structuredClone(DEFAULT_STATE); save();
+      Settings.close(); this.renderAll(); applyTheme(); toast("All data reset");
+    }
+  }
+};
+
+/* ============================================================
+   VOICE — Web Speech API (recognition + synthesis)
+   ============================================================ */
+const Voice = {
+  rec:null, listening:false, voices:[],
+  init(){
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(SR){
+      this.rec=new SR(); this.rec.lang="en-US"; this.rec.interimResults=false; this.rec.maxAlternatives=1;
+      this.rec.onresult=e=>{ const txt=e.results[0][0].transcript; Jarvis.handle(txt,true); };
+      this.rec.onerror=e=>{ this.stop(); if(e.error==="not-allowed") toast("Microphone blocked — allow mic access"); };
+      this.rec.onend=()=>{ this.listening=false; setMicUI(false); };
+    }
+    // voices
+    const loadV=()=>{ this.voices=speechSynthesis.getVoices(); this.populate(); };
+    loadV(); if(speechSynthesis.onvoiceschanged!==undefined) speechSynthesis.onvoiceschanged=loadV;
+  },
+  supported(){ return !!this.rec; },
+  toggle(){ if(this.listening) this.stop(); else this.start(); },
+  start(){ if(!this.rec){ toast("Voice input needs Chrome/Edge over HTTPS"); return;} try{ this.rec.start(); this.listening=true; setMicUI(true); Jarvis.toggleConsole(true);}catch(e){} },
+  stop(){ if(this.rec){ try{this.rec.stop();}catch(e){} } this.listening=false; setMicUI(false); },
+  populate(){
+    const sel=$("#setVoice"); if(!sel) return;
+    const en=this.voices.filter(v=>/en/i.test(v.lang));
+    sel.innerHTML = (en.length?en:this.voices).map(v=>`<option value="${v.voiceURI}">${v.name} (${v.lang})</option>`).join("");
+    if(State.settings.voiceURI) sel.value=State.settings.voiceURI;
+  },
+  pick(){
+    if(State.settings.voiceURI){ const v=this.voices.find(v=>v.voiceURI===State.settings.voiceURI); if(v) return v; }
+    // prefer a British male voice for the Jarvis feel
+    return this.voices.find(v=>/en-GB/i.test(v.lang)&&/male|daniel|arthur|george/i.test(v.name))
+        || this.voices.find(v=>/en-GB/i.test(v.lang))
+        || this.voices.find(v=>/en/i.test(v.lang)) || this.voices[0];
+  },
+  speak(text){
+    if(!State.settings.speak||!("speechSynthesis" in window)) return;
+    speechSynthesis.cancel();
+    const clean=text.replace(/[#*_`>•]/g,"").replace(/\s+/g," ").trim();
+    const u=new SpeechSynthesisUtterance(clean);
+    const v=this.pick(); if(v) u.voice=v;
+    u.rate=State.settings.rate||1; u.pitch=.95;
+    u.onstart=()=>setOrb("speaking"); u.onend=()=>setOrb("idle");
+    speechSynthesis.speak(u);
+  },
+  shutup(){ if("speechSynthesis" in window) speechSynthesis.cancel(); setOrb("idle"); }
+};
+
+/* ============================================================
+   JARVIS — conversational brain (local + optional Claude API)
+   ============================================================ */
+const Jarvis = {
+  history:[],
+  greeted:false,
+
+  toggleConsole(open){
+    const c=$("#console");
+    const show = open===undefined ? !c.classList.contains("open") : open;
+    c.classList.toggle("open",show);
+    if(show && !this.greeted){ this.greeted=true; this.brief(); }
+  },
+
+  addUser(t){ this.push("u",esc(t)); },
+  addJarvis(html){ this.push("j",html); },
+  push(role,html){
+    const box=$("#msgs");
+    const el=document.createElement("div"); el.className="msg "+role;
+    el.innerHTML = role==="j" ? `<div class="who"><span class="dotp" style="width:6px;height:6px;border-radius:50%;background:var(--cyan);display:inline-block"></span> Jarvis</div><div class="bubble">${html}</div>` : html;
+    box.appendChild(el); box.scrollTop=box.scrollHeight;
+    return el;
+  },
+  typing(){ return this.push("j",`<span class="typing"><span></span><span></span><span></span></span>`); },
+
+  say(html, speakText){
+    this.addJarvis(html);
+    Voice.speak(speakText || html.replace(/<[^>]+>/g," "));
+  },
+
+  handle(text, fromVoice){
+    text=(text||"").trim(); if(!text) return;
+    this.toggleConsole(true);
+    this.addUser(text);
+    this.history.push({role:"user",content:text});
+    $("#dockInput").value="";
+    // If API key present and not sandboxed, go to Claude; else local brain.
+    if(State.settings.apiKey && !IS_SANDBOX){
+      this.askClaude(text);
+    } else {
+      const r=this.localAnswer(text);
+      this.say(r.html, r.speak);
+      this.history.push({role:"assistant",content:r.speak||r.html.replace(/<[^>]+>/g," ")});
+    }
+  },
+
+  /* ---------- Local brain ---------- */
+  localAnswer(q){
+    const t=q.toLowerCase();
+    const T=todayISO(), w=weekOf(T), wk=KB.weeks[w], g=gateStatus();
+    const posts=postsFor(T).filter(p=>p.time);
+    const name=State.name||"Tony";
+
+    const has=(...k)=>k.some(x=>t.includes(x));
+
+    // greetings / brief
+    if(has("brief","good morning","good evening","hello","hey jarvis","hi jarvis","standup","stand up","start my day"))
+      return this.briefContent();
+
+    // today's tasks
+    if(has("today","right now","what should i post","what's my task","whats my task","to do","todo","my plan for today")){
+      if(!posts.length) return {html:`<p>${esc(fmtDateLabel(T))} is a <b>build / engage day</b> — no posts scheduled. ${esc(postsFor(T)[0]?.hook||"Reply to comments and log the week.")}</p>`, speak:`Today is a build day. ${postsFor(T)[0]?.hook||""}`};
+      return {html:`<p>Here's today — <b>Week ${w}</b>, ${esc(wk.focus.split("—")[0].trim())}:</p><ul>${posts.map(p=>`<li><b>${esc(p.time)}</b> · ${esc(p.fmt)} — ${esc(p.hook)} <span style="color:var(--cyan)">(${esc(p.cta)})</span></li>`).join("")}</ul><p>CTA rule this week: ${esc(wk.cta)}. Reply to every comment within 2 hours of posting.</p>`,
+        speak:`You have ${posts.length} posts today. ${posts.map(p=>`At ${p.time}, a ${p.fmt}: ${p.hook}`).join(". ")}`};
+    }
+
+    // week
+    if(has("week","this week","weekly")){
+      return {html:`<p><b>Week ${w}</b> · ${esc(wk.range)}</p><p>${esc(wk.focus)}</p><p style="color:var(--cyan)">CTA mix: ${esc(wk.cta)}</p><p>Rhythm: Sunday write · Monday design · Tuesday record · Wed–Sat publish & engage · Friday log.</p>`,
+        speak:`Week ${w}. ${wk.focus}. Remember the rhythm: write Sunday, design Monday, record Tuesday, publish and engage midweek.`};
+    }
+
+    // gate / progress / how am i doing
+    if(has("gate","on track","progress","how am i doing","how am i","feedback","am i on track"))
+      return this.feedbackContent();
+
+    // strategy / mission / vision
+    if(has("strategy","mission","vision","purpose","positioning")){
+      return {html:`<p><b>Purpose.</b> ${esc(KB.foundation.purpose)}</p><p><b>Strategy.</b> ${esc(KB.foundation.strategy)}</p><p><b>Promise.</b> ${esc(KB.brand.promise)}</p>`,
+        speak:`${KB.foundation.purpose} The strategy: ${KB.foundation.strategy}`};
+    }
+
+    // pillars
+    if(has("pillar")){
+      return {html:`<p>Three strategic pillars:</p><ul>${KB.pillars.map(p=>`<li><b>${esc(p.n)}</b> — ${esc(p.o)}</li>`).join("")}</ul><p>Governance is the wedge — the weakest pillar across every competitor.</p>`,
+        speak:`Three pillars: ${KB.pillars.map(p=>p.n).join(", ")}. Governance is the wedge.`};
+    }
+
+    // pyramid / levels / academy / framework / certification
+    if(has("level","pyramid","framework","academy","certification","journey","course")){
+      return {html:`<p>The academy is a five-level journey — <b>${esc(KB.brand.promise)}</b></p><ul>${KB.pyramid.map(L=>`<li><b>L${L.lvl} · ${esc(L.name)}</b> → ${esc(L.cert)}</li>`).join("")}</ul><p>Most educators only teach Level 2. Teaching all five is the differentiation.</p>`,
+        speak:`Five levels: Fluency, Application, Adoption, Governance, Leadership. From AI awareness to AI leadership. Most educators only teach level two — teaching all five is your edge.`};
+    }
+
+    // non-negotiables / rules
+    if(has("non-negotiable","nonnegotiable","rule","don't","dont do","never")){
+      return {html:`<p>Non-negotiables:</p><ul>${KB.nonneg.map(n=>`<li>${esc(n)}</li>`).join("")}</ul>`, speak:`The non-negotiables: ${KB.nonneg.join(". ")}`};
+    }
+    // post format
+    if(has("format","how to write","post structure","hook","verb test")){
+      return {html:`<p><b>Every post:</b> ${esc(KB.rules.postFormat)}</p><p><b>Three tests:</b> ${esc(KB.rules.tests)}</p>`, speak:KB.rules.postFormat+" "+KB.rules.tests};
+    }
+    // revenue / money
+    if(has("revenue","money","monet","price","pricing","ebook","sell")){
+      return {html:`<p>Revenue comes in stages:</p><ul>${KB.revenueStages.map(s=>`<li><b>${esc(s.s)}</b> — ${esc(s.d)} <span style="color:var(--cyan)">${esc(s.price)}</span></li>`).join("")}</ul><p>But Phase 1 is zero selling — build the audience first.</p>`,
+        speak:`Revenue stages: audience, then digital products at 19 to 49 dollars, then corporate training, then the academy certifications. But Phase 1 is zero selling.`};
+    }
+    // subscribers / metrics quick read
+    if(has("subscriber","how many subs","email list","list")){
+      return {html:`<p>You're at <b>${State.metrics.subs}</b> subscribers — the gate needs <b>150</b>. ${State.metrics.subs>=150?"That condition is met. ✓":`${150-State.metrics.subs} to go.`}</p>`, speak:`You have ${State.metrics.subs} subscribers. The gate needs 150.`};
+    }
+    // set metric by voice: "set subscribers to 40" / "I have 40 subscribers"
+    const setM=t.match(/(?:set |i have |we have |now )?(subscriber|subs|post|linkedin|reach)\w*\s*(?:to|is|at|=)?\s*(\d+)/);
+    const numFirst=t.match(/(\d+)\s*(subscriber|subs|post|linkedin)/);
+    if(setM||numFirst){
+      const m=setM||[null,numFirst[2],numFirst[1]];
+      const val=parseInt(m[2]); const kw=m[1];
+      let key = kw.startsWith("sub")?"subs":kw.startsWith("post")?"posts":kw.startsWith("link")?"linkedin":kw.startsWith("reach")?"outsized":null;
+      if(key){ State.metrics[key]=val; save(); App.renderAll();
+        return {html:`<p>Updated — <b>${esc(key)}</b> is now <b>${val}</b>. ${key==="subs"?`${Math.max(0,150-val)} to the gate.`:""}</p>`, speak:`Updated. ${key} is now ${val}.`};
+      }
+    }
+    // log via voice: "log: ..." or "note ..."
+    if(t.startsWith("log ")||t.startsWith("note ")||has("log this","add a note","remember that")){
+      const txt=q.replace(/^(log|note)\s*:?\s*/i,"").replace(/log this|add a note|remember that/i,"").trim();
+      if(txt.length>3){ State.logs.unshift({when:new Date().toLocaleString(),type:"update",text:txt}); save(); App.renderLog();
+        return {html:`<p>Logged. ✓ <span class="muted">"${esc(txt)}"</span></p>`, speak:"Logged."}; }
+    }
+    // mark done: "mark the 8pm post done" / "done"
+    if(has("mark","done","posted","finished","completed") && posts.length){
+      let target=posts.find(p=>State.done[p.id]!==true);
+      if(t.includes("reel")) target=posts.find(p=>p.fmt==="Reel")||target;
+      if(t.includes("carousel")) target=posts.find(p=>p.fmt==="Carousel")||target;
+      if(target){ App.toggle(target.id);
+        return {html:`<p>Marked done: <b>${esc(target.hook)}</b> ✓ That's ${publishedCount()} posts logged.</p>`, speak:`Marked done. ${target.hook}`}; }
+    }
+    // help
+    if(has("help","what can you do","commands","how do you work")){
+      return {html:`<p>I know your whole It's AI Education plan. Try:</p><ul>
+        <li>"Brief me" / "What's my plan today?"</li>
+        <li>"How am I doing?" — gate feedback</li>
+        <li>"Read me the strategy" · "the pillars" · "the levels"</li>
+        <li>"I have 40 subscribers" — I'll update the tracker</li>
+        <li>"Log: posted the settings carousel, 14 saves"</li>
+        <li>"Mark the reel done"</li></ul>
+        <p class="muted">Add a Claude API key in settings for open-ended conversation and content drafting.</p>`,
+        speak:"I know your whole plan. Ask me to brief you, tell you today's posts, how you're doing against the gate, or read the strategy. Tell me your numbers and I'll track them."};
+    }
+
+    // fallback
+    return {html:`<p>I've got your strategy, working plan, day-by-day plan and the five-level academy loaded — but I answer best offline to specific questions. Try <b>"brief me"</b>, <b>"today's posts"</b>, <b>"how am I doing?"</b>, or <b>"read the strategy"</b>.</p><p class="muted">For open conversation and drafting, add your Claude API key in ⚙ settings.</p>`,
+      speak:"I have your full plan loaded. Ask me to brief you, for today's posts, how you're doing, or to read the strategy. For open conversation, add a Claude API key in settings."};
+  },
+
+  briefContent(){
+    const T=todayISO(), w=weekOf(T), wk=KB.weeks[w], g=gateStatus();
+    const posts=postsFor(T).filter(p=>p.time);
+    const name=State.name||"Tony";
+    const hr=new Date().getHours(); const salut=hr<12?"Good morning":hr<17?"Good afternoon":"Good evening";
+    let body = `<p><b>${salut}, ${esc(name)}.</b> It's ${esc(fmtDateLabel(T))} — <b>Week ${w}</b> of Phase 1, ${esc(wk.focus.split("—")[0].trim())}.</p>`;
+    if(posts.length){
+      body += `<p>Today's ${posts.length} post${posts.length>1?"s":""}:</p><ul>${posts.map(p=>`<li><b>${esc(p.time)}</b> ${esc(p.fmt)} — ${esc(p.hook)} <span style="color:var(--cyan)">(${esc(p.cta)})</span></li>`).join("")}</ul>`;
+    } else {
+      body += `<p>No posts today — it's a build/engage day: ${esc(postsFor(T)[0]?.hook||"reply to comments and log the week")}.</p>`;
+    }
+    body += `<p>Gate status: <b>${g.metCount}/7</b> met · ${State.metrics.subs}/150 subscribers · ${State.metrics.posts} posts published.</p>`;
+    const nudge = g.metCount>=7 ? "You've cleared the gate — Phase 2 is open." :
+                  State.metrics.subs<50 ? "Subscribers are the tightest constraint — every keyword CTA from Week 4 feeds this." :
+                  "Stay on the rhythm — batch on the weekend, don't improvise daily.";
+    body += `<p class="muted">${nudge}</p>`;
+    const speak = `${salut}, ${name}. It's ${fmtDateLabel(T)}, week ${w}. `+
+      (posts.length?`You have ${posts.length} posts today. ${posts.map(p=>`At ${p.time}, a ${p.fmt}: ${p.hook}.`).join(" ")} `:`It's a build day today. `)+
+      `You're at ${g.metCount} of 7 gate conditions and ${State.metrics.subs} subscribers. ${nudge}`;
+    return {html:body, speak};
+  },
+  feedbackContent(){
+    const g=gateStatus(); const m=State.metrics;
+    const gaps=[];
+    if(g.posts<100) gaps.push(`posts (${m.posts}/40)`);
+    if(g.subs<100) gaps.push(`subscribers (${m.subs}/150)`);
+    if(g.linkedin<100) gaps.push(`LinkedIn (${m.linkedin}/12)`);
+    if(g.outsized<100) gaps.push(`outsized-reach posts (${m.outsized}/3)`);
+    if(!m.saveTrend) gaps.push("save-rate trend not yet up");
+    if(!m.ebook) gaps.push("ebook outline");
+    if(!m.dm) gaps.push("DM automation");
+    const verdict = g.metCount>=7 ? "Gate cleared — you can advance to Phase 2." :
+      g.metCount>=4 ? "Solid momentum, but the gate isn't clear yet." :
+      "Early days — this is exactly where cold-start flatness is normal. Don't react to it.";
+    let body=`<p><b>${esc(verdict)}</b> ${g.metCount}/7 conditions met (${g.overall}% overall).</p>`;
+    body += gaps.length ? `<p>Focus next on:</p><ul>${gaps.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>` : `<p>Every condition is green. ✓</p>`;
+    body += `<p class="muted">Judge on trends across 10+ posts — never a single post.</p>`;
+    return {html:body, speak:`${verdict}. ${g.metCount} of 7 conditions met. ${gaps.length?"Focus next on "+gaps.join(", ")+".":"Everything is green."}`};
+  },
+
+  brief(){ this.toggleConsole(true); const c=this.briefContent(); this.say(c.html,c.speak); this.history.push({role:"assistant",content:c.speak}); },
+  feedback(){ this.toggleConsole(true); const c=this.feedbackContent(); this.say(c.html,c.speak); },
+
+  /* ---------- Optional Claude API ---------- */
+  systemPrompt(){
+    const T=todayISO(), w=weekOf(T), wk=KB.weeks[w], g=gateStatus();
+    const posts=postsFor(T);
+    return `You are JARVIS, the calm, precise, encouraging AI chief-of-staff for "It's AI Education", the AI-education academy founded by ${State.name||"Tony Thomas"} (20+ years in Learning & Development, programs across 158+ locations, Dubai-based). Speak briefly and warmly, like a trusted operator. Address him by name occasionally. Never invent statistics; if unsure, say so.
+
+BRAND: ${KB.brand.corporatePos} Signature promise: "${KB.brand.promise}". Tagline: ${KB.brand.tagline}.
+FOUNDATION — Purpose: ${KB.foundation.purpose} Vision: ${KB.foundation.vision} Mission: ${KB.foundation.mission} Strategy: ${KB.foundation.strategy}
+PILLARS: ${KB.pillars.map(p=>p.n+" ("+p.o+")").join("; ")}.
+FIVE-LEVEL ACADEMY (from AI Awareness to AI Leadership): ${KB.pyramid.map(l=>"L"+l.lvl+" "+l.name+" → "+l.cert).join("; ")}.
+PHASES: ${KB.phases.map(p=>"P"+p.id+" "+p.name+" ("+p.when+"): "+p.obj).join(" | ")}.
+NON-NEGOTIABLES: ${KB.nonneg.join(" ")}
+POST FORMAT: ${KB.rules.postFormat} TESTS: ${KB.rules.tests} CADENCE: ${KB.rules.cadence}
+
+CURRENT STATE (live from the dashboard):
+- Today: ${fmtDateLabel(T)}, Week ${w} — ${wk.focus}
+- Today's scheduled items: ${posts.map(p=>`${p.time||"build"} ${p.fmt}: ${p.hook} (CTA ${p.cta||"—"})`).join(" | ")||"none"}
+- Metrics: posts ${State.metrics.posts}/40, subscribers ${State.metrics.subs}/150, LinkedIn ${State.metrics.linkedin}/12, outsized-reach ${State.metrics.outsized}/3, save-trend ${State.metrics.saveTrend?"up":"not yet"}, ebook outline ${State.metrics.ebook?"done":"not yet"}, DM automation ${State.metrics.dm?"reliable":"not yet"}. Gate: ${g.metCount}/7 met.
+- Recent log notes: ${(State.logs.slice(0,5).map(l=>l.text).join(" || "))||"none yet"}
+
+Help him stay focused on the day's plan, give honest feedback against the Phase-1 gate, suggest improvements to the strategy/plan when asked, and draft on-brand content (plain English, one small problem per post, hook starts with a verb, zero selling in Phase 1). Keep replies to a few sentences unless asked to expand.`;
+  },
+  async askClaude(text){
+    const tp=this.typing();
+    try{
+      const msgs=this.history.slice(-12).map(m=>({role:m.role,content:m.content}));
+      const res=await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        headers:{"content-type":"application/json","x-api-key":State.settings.apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+        body:JSON.stringify({model:State.settings.model||"claude-sonnet-5",max_tokens:700,system:this.systemPrompt(),messages:msgs})
+      });
+      if(!res.ok){ throw new Error("HTTP "+res.status); }
+      const data=await res.json();
+      const reply=(data.content||[]).map(c=>c.text||"").join("").trim()||"…";
+      tp.remove();
+      const html=reply.split(/\n\n+/).map(p=>`<p>${esc(p).replace(/\n/g,"<br>")}</p>`).join("");
+      this.say(html, reply);
+      this.history.push({role:"assistant",content:reply});
+    }catch(err){
+      tp.remove();
+      // graceful fallback to local brain
+      const r=this.localAnswer(text);
+      this.addJarvis(`<p class="muted" style="font-size:11.5px">⚠ Live API unavailable here — using the built-in brain.</p>`+r.html);
+      Voice.speak(r.speak);
+    }
+  }
+};
+
+/* ============================================================
+   ORB — reactive canvas
+   ============================================================ */
+let orbState="idle";
+function setOrb(s){ orbState=s; const o=$("#orb"); o.classList.toggle("speaking",s==="speaking"); o.classList.toggle("listening",s==="listening");
+  $("#orbCaption").innerHTML = s==="speaking"?'<b>Speaking…</b>':s==="listening"?'<b style="color:var(--orange)">Listening…</b>':'Tap the core · <b>talk to Jarvis</b>'; }
+function initOrb(){
+  const c=$("#orb canvas"), x=c.getContext("2d"); const W=c.width,H=c.height,cx=W/2,cy=H/2;
+  let tms=0;
+  (function draw(){
+    tms+=0.016; x.clearRect(0,0,W,H);
+    const amp = orbState==="speaking"?1:orbState==="listening"?0.7:0.35;
+    const base=Math.min(W,H)*0.30;
+    // rings
+    for(let r=0;r<3;r++){
+      x.beginPath();
+      const pts=90;
+      for(let i=0;i<=pts;i++){
+        const a=(i/pts)*Math.PI*2;
+        const n=Math.sin(a*3+tms*(1.6+r*0.5))*Math.cos(a*2-tms*1.1);
+        const rad=base+r*14 + n*8*amp + Math.sin(tms*2+r)*3;
+        const px=cx+Math.cos(a)*rad, py=cy+Math.sin(a)*rad;
+        i===0?x.moveTo(px,py):x.lineTo(px,py);
+      }
+      x.closePath();
+      const cyan = orbState==="listening" ? "255,122,89" : "90,176,255";
+      x.strokeStyle=`rgba(${cyan},${0.5-r*0.13})`; x.lineWidth=1.6-r*0.4; x.stroke();
+    }
+    // core
+    const cg=x.createRadialGradient(cx,cy,0,cx,cy,base);
+    const col = orbState==="listening"?"255,122,89":"90,176,255";
+    cg.addColorStop(0,`rgba(${col},${0.55+0.25*amp})`); cg.addColorStop(0.6,`rgba(${col},0.12)`); cg.addColorStop(1,"rgba(0,0,0,0)");
+    x.fillStyle=cg; x.beginPath(); x.arc(cx,cy,base,0,Math.PI*2); x.fill();
+    // center dot
+    x.fillStyle=`rgba(230,241,251,${0.8+0.2*Math.sin(tms*4)})`; x.beginPath(); x.arc(cx,cy,4+2*amp,0,Math.PI*2); x.fill();
+    requestAnimationFrame(draw);
+  })();
+}
+
+/* ============================================================
+   UI wiring
+   ============================================================ */
+function setMicUI(on){ $("#micBtn").classList.toggle("on",on); setOrb(on?"listening":"idle"); $("#voiceState").textContent=on?"Listening…":"Voice ready"; }
+function clockTick(){
+  const d=new Date();
+  $("#clockT").textContent=d.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"});
+  $("#clockD").textContent=d.toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short"}).toUpperCase();
+}
+function applyTheme(){
+  const t=State.settings.theme;
+  if(t) document.documentElement.setAttribute("data-theme",t); else document.documentElement.removeAttribute("data-theme");
+}
+
+const Settings={
+  open(){ $("#setName").value=State.name||""; $("#setKey").value=State.settings.apiKey||"";
+    $("#setModel").value=State.settings.model||"claude-sonnet-5"; $("#setRate").value=State.settings.rate||1;
+    Voice.populate(); $("#settingsModal").classList.add("open"); },
+  close(){ $("#settingsModal").classList.remove("open"); },
+  save(){
+    State.name=$("#setName").value.trim()||"Tony";
+    State.settings.apiKey=$("#setKey").value.trim();
+    State.settings.model=$("#setModel").value;
+    State.settings.voiceURI=$("#setVoice").value;
+    State.settings.rate=parseFloat($("#setRate").value)||1;
+    save(); this.close(); App.renderAll(); updateBrainMode(); toast("Settings saved");
+  }
+};
+function updateBrainMode(){ $("#brainMode").textContent = (State.settings.apiKey && !IS_SANDBOX)?"CLAUDE "+(State.settings.model||"").replace("claude-","").toUpperCase():"LOCAL BRAIN"; }
+
+// Detect artifact/sandbox (CSP blocks external fetch). Heuristic: if we can't reach api later we fall back anyway.
+const IS_SANDBOX = (()=>{ try{ return window.location.hostname.includes("usercontent")||window.location.protocol==="blob:"; }catch(e){ return false; } })();
+
+function boot(){
+  // nav
+  $("#nav").addEventListener("click",e=>{ const b=e.target.closest("button"); if(b) App.go(b.dataset.view); });
+  // theme
+  $("#themeBtn").addEventListener("click",()=>{ const cur=document.documentElement.getAttribute("data-theme"); const isDark = cur? cur==="dark" : !matchMedia("(prefers-color-scheme: light)").matches; State.settings.theme=isDark?"light":"dark"; applyTheme(); save(); });
+  // settings
+  $("#settingsBtn").addEventListener("click",()=>Settings.open());
+  $("#settingsModal").addEventListener("click",e=>{ if(e.target.id==="settingsModal") Settings.close(); });
+  // dock
+  $("#sendBtn").addEventListener("click",()=>Jarvis.handle($("#dockInput").value));
+  $("#dockInput").addEventListener("keydown",e=>{ if(e.key==="Enter") Jarvis.handle($("#dockInput").value); });
+  $("#micBtn").addEventListener("click",()=>{ if(!Voice.supported()){ toast("Voice needs Chrome/Edge over HTTPS"); Jarvis.toggleConsole(true); return;} Voice.toggle(); });
+  $("#orb").addEventListener("click",()=>{ Voice.supported()?Voice.toggle():Jarvis.toggleConsole(); });
+  $("#speakToggle").addEventListener("click",e=>{ State.settings.speak=!State.settings.speak; save(); e.currentTarget.classList.toggle("on",State.settings.speak); e.currentTarget.textContent=State.settings.speak?"🔊":"🔇"; if(!State.settings.speak) Voice.shutup(); toast(State.settings.speak?"Jarvis voice on":"Jarvis voice muted"); });
+  // log
+  $("#logTypeToggle").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b)return; $$("#logTypeToggle button").forEach(x=>x.classList.remove("on")); b.classList.add("on"); });
+  $("#logSave").addEventListener("click",()=>{
+    const txt=$("#logInput").value.trim(); if(!txt){ toast("Write something first"); return; }
+    const type=$("#logTypeToggle .on").dataset.t;
+    State.logs.unshift({when:new Date().toLocaleString(),type,text:txt}); save(); $("#logInput").value=""; App.renderLog();
+    toast("Saved to log ✓");
+    if(type==="change"){ Jarvis.toggleConsole(true); Jarvis.say(`<p>Noted the change to the plan: <span class="muted">"${esc(txt)}"</span>. I'll keep it in mind for your briefings.</p>`,"Noted the change. I'll factor it into your briefings."); }
+  });
+
+  applyTheme();
+  App.renderAll();
+  initOrb();
+  Voice.init();
+  clockTick(); setInterval(clockTick,1000*20);
+  updateBrainMode();
+  $("#speakToggle").classList.toggle("on",State.settings.speak);
+  $("#speakToggle").textContent=State.settings.speak?"🔊":"🔇";
+}
+document.addEventListener("DOMContentLoaded",boot);
+</script>
+</body>
+</html>

@@ -1137,28 +1137,48 @@ const App = {
    VOICE — Web Speech API (recognition + synthesis)
    ============================================================ */
 const Voice = {
-  rec:null, listening:false, voices:[],
+  rec:null, listening:false, wantListen:false, gotSpeech:false, voices:[],
   inIframe:(function(){ try{ return window.self!==window.top; }catch(e){ return true; } })(),
   init(){
     const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
     if(SR){
-      this.rec=new SR(); this.rec.lang="en-US"; this.rec.interimResults=false; this.rec.maxAlternatives=1;
-      this.rec.onresult=e=>{ const txt=e.results[0][0].transcript; Jarvis.handle(txt,true); };
-      this.rec.onerror=e=>{ this.stop();
+      const r=this.rec=new SR();
+      r.lang="en-US"; r.interimResults=true; r.continuous=true; r.maxAlternatives=1;
+      // Live feedback so you can SEE it hearing you
+      r.onaudiostart =()=>{ if(this.wantListen){ $("#voiceState").textContent="Listening…"; } };
+      r.onsoundstart =()=>{ this.gotSpeech=true; $("#voiceState").textContent="I hear you…"; };
+      r.onspeechstart=()=>{ this.gotSpeech=true; };
+      r.onresult=e=>{
+        let interim="", final="";
+        for(let i=e.resultIndex;i<e.results.length;i++){
+          const t=e.results[i][0].transcript;
+          if(e.results[i].isFinal) final+=t; else interim+=t;
+        }
+        this.gotSpeech=true;
+        if(interim) $("#orbCaption").innerHTML='<b style="color:var(--orange)">"'+esc(interim)+'"</b>';
+        if(final.trim()){ this.stop(); setOrb("idle"); Jarvis.handle(final.trim(), true); }
+      };
+      r.onerror=e=>{
+        // no-speech / aborted during continuous listening: let onend auto-restart, no alarm
+        if(e.error==="no-speech"||e.error==="aborted") return;
+        this.wantListen=false; this.listening=false; setMicUI(false);
         let m;
         if(e.error==="not-allowed"||e.error==="service-not-allowed"){
           m = this.inIframe
-            ? "The mic is blocked inside this embedded preview — sandboxed frames don't get microphone access. Open the dashboard as its own page (the hosted link, or index.html on localhost) and I'll hear you. You can keep typing to me here in the meantime."
-            : "The microphone is blocked for this page. Click the padlock (or camera/mic icon) in the address bar, set Microphone to Allow, then reload and tap the orb again.";
+            ? "The mic is blocked inside this embedded preview — open the dashboard as its own page and allow the mic. You can keep typing to me here meanwhile."
+            : "The microphone is blocked for this page. Click the padlock (or mic icon) in the address bar, set Microphone to Allow, then reload and tap the orb again.";
         }
-        else if(e.error==="no-speech") m="I didn't catch anything that time — tap the orb and speak again.";
-        else if(e.error==="audio-capture") m="I can't find a microphone — check one is connected and enabled.";
-        else if(e.error==="network") m="Voice recognition needs an internet connection right now.";
-        else if(e.error==="aborted") return;
-        else m="Voice input hit a snag — you can type to me while I sort it out.";
+        else if(e.error==="audio-capture") m="I can't find a microphone — check one is connected and set as the default input device.";
+        else if(e.error==="network") m="I couldn't reach the speech service. Two quick fixes: 1) In Windows, open Settings → Privacy & security → Speech and turn ON 'Online speech recognition'. 2) If you're in Edge, try Chrome. Then reload and tap the orb. In the meantime, just type to me — I'll answer the same way.";
+        else if(e.error==="language-not-supported") m="This browser can't do English voice recognition here — try Chrome, or type to me.";
+        else m="Voice input hit a snag ("+e.error+") — you can type to me while I sort it out.";
         Jarvis.guide(m);
       };
-      this.rec.onend=()=>{ this.listening=false; setMicUI(false); };
+      r.onend=()=>{
+        // Browsers end recognition after a pause; keep going until you tap the orb off
+        if(this.wantListen){ try{ r.start(); }catch(e){} return; }
+        this.listening=false; setMicUI(false);
+      };
     }
     // voices
     const loadV=()=>{ this.voices=speechSynthesis.getVoices(); this.populate(); };
@@ -1177,10 +1197,19 @@ const Voice = {
   async start(){
     const problem=await this.diagnose();
     if(problem){ Jarvis.guide(problem); return; }
+    this.wantListen=true; this.gotSpeech=false;
     try{ this.rec.start(); this.listening=true; setMicUI(true); Jarvis.toggleConsole(true); }
     catch(e){ /* start() throws if already running — ignore */ }
+    // If no audio at all arrives in 6s, the OS speech service is likely off — tell them how to fix it.
+    clearTimeout(this._silenceT);
+    this._silenceT=setTimeout(()=>{
+      if(this.wantListen && !this.gotSpeech){
+        this.stop();
+        Jarvis.guide("The mic is on but no words are coming through — that almost always means Windows online speech recognition is off. Open Settings → Privacy & security → Speech and turn ON 'Online speech recognition', then reload and tap the orb. (Or try Chrome.) You can always type to me here.");
+      }
+    },6000);
   },
-  stop(){ if(this.rec){ try{this.rec.stop();}catch(e){} } this.listening=false; setMicUI(false); },
+  stop(){ this.wantListen=false; clearTimeout(this._silenceT); if(this.rec){ try{this.rec.stop();}catch(e){} } this.listening=false; setMicUI(false); },
   populate(){
     const sel=$("#setVoice"); if(!sel) return;
     const en=this.voices.filter(v=>/en/i.test(v.lang));

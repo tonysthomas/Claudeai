@@ -1186,6 +1186,7 @@ const Voice = {
 const Jarvis = {
   history:[],
   greeted:false,
+  context:{topic:null, pending:null},   // two-way state: what we last discussed / a question awaiting your reply
 
   toggleConsole(open){
     const c=$("#console");
@@ -1222,6 +1223,7 @@ const Jarvis = {
     } else {
       const r=this.localAnswer(text);
       this.say(r.html, r.speak);
+      this.context.pending = r.then?.pending || null;   // keep the conversation two-way
       this.history.push({role:"assistant",content:r.speak||r.html.replace(/<[^>]+>/g," ")});
     }
   },
@@ -1234,13 +1236,46 @@ const Jarvis = {
     const name=State.name||"Tony";
 
     const has=(...k)=>k.some(x=>t.includes(x));
+    const affirm=/^(yes|yeah|yep|yup|sure|ok|okay|done|did it|i did|correct|right|affirmative|posted( it)?)\b/.test(t);
+    const negate=/^(no|nope|not yet|didn'?t|did not|haven'?t|have not|nah|negative)\b/.test(t);
+
+    // ---- TWO-WAY LAYER: answer a question Jarvis just asked ----
+    if(this.context.pending){
+      const p=this.context.pending; this.context.pending=null;
+      if(p==="postedToday"){
+        if(affirm){ const tg=posts.find(x=>!State.done[x.id]); if(tg) App.toggle(tg.id);
+          return {html:`<p>Nice — logged it. ✓ That's ${publishedCount()} posts down. Reply to every comment in the first two hours; that window is where saves are won. Did anything stand out — a hook that landed or flopped?</p>`, speak:`Nice, logged. Reply to comments in the first two hours. Did anything stand out on that post?`, then:{pending:"reflect"}};}
+        if(negate){ return {html:`<p>No problem. Reels post at 1 PM, the carousel lands at 8 PM GST — strongest window is 7–9 PM. Want me to read you today's hooks again so you can line them up?</p>`, speak:`No problem. Reels at 1 PM, carousel at 8 PM. Want me to read today's hooks again?`, then:{pending:"readHook"}};}
+      }
+      if(p==="readHook" && affirm) return this.localAnswer("today");
+      if(p==="logRepeatable" && affirm){ State.metrics.outsized=Math.min(99,(State.metrics.outsized||0)+1); save(); App.renderAll();
+        return {html:`<p>Done — outsized-reach count is now <b>${State.metrics.outsized}</b>/3. That's a gate condition; three repeatable hooks and it's green. Keep copying that pattern.</p>`, speak:`Done. Outsized reach is now ${State.metrics.outsized} of 3.`};}
+      // p==="reflect" or anything else: fall through and process their reply normally
+    }
+
+    // ---- small talk / acknowledgement (keeps it human) ----
+    if(/^(thanks|thank you|cheers|great|nice|awesome|perfect|good stuff|love it|brilliant)\b/.test(t))
+      return {html:`<p>Anytime, ${esc(name)}. I'm here whenever you want to check the plan, log how a post did, or think out loud about the strategy. What's next?</p>`, speak:`Anytime, ${name}. What's next?`};
+    if(/^(hi|hey|hello|yo|jarvis)\b/.test(t) && t.length<14) return this.briefContent();
+
+    // ---- follow-ups on what we were just discussing ----
+    if(has("why","tell me more","explain","expand","more detail"," more","go on","and then","what do you mean","elaborate")){
+      const e=this.expandTopic(this.context.topic);
+      if(e) return e;
+    }
+    // ---- time navigation ----
+    if(has("tomorrow","next day")) return this.dayPlan(1);
+    if(has("yesterday","last day","previous day")) return this.dayPlan(-1);
 
     // greetings / brief
     if(has("brief","good morning","good evening","hello","hey jarvis","hi jarvis","standup","stand up","start my day"))
       return this.briefContent();
 
-    // today's tasks
-    if(has("today","right now","what should i post","what's my task","whats my task","to do","todo","my plan for today")){
+    // today's tasks — match questions about today, not any sentence containing "today"
+    const asksToday = has("right now","what should i post","what's my task","whats my task","my plan for today","plan today","today's post","todays post","posts today","schedule today")
+      || (has("today") && (t.includes("?") || /^(what|whats|show|list|give|my|read)\b/.test(t) || t.length<18));
+    if(has("to do","todo") || asksToday){
+      this.context.topic="today";
       if(!posts.length) return {html:`<p>${esc(fmtDateLabel(T))} is a <b>build / engage day</b> — no posts scheduled. ${esc(postsFor(T)[0]?.hook||"Reply to comments and log the week.")}</p>`, speak:`Today is a build day. ${postsFor(T)[0]?.hook||""}`};
       return {html:`<p>Here's today — <b>Week ${w}</b>, ${esc(wk.focus.split("—")[0].trim())}:</p><ul>${posts.map(p=>`<li><b>${esc(p.time)}</b> · ${esc(p.fmt)} — ${esc(p.hook)} <span style="color:var(--cyan)">(${esc(p.cta)})</span></li>`).join("")}</ul><p>CTA rule this week: ${esc(wk.cta)}. Reply to every comment within 2 hours of posting.</p>`,
         speak:`You have ${posts.length} posts today. ${posts.map(p=>`At ${p.time}, a ${p.fmt}: ${p.hook}`).join(". ")}`};
@@ -1253,23 +1288,26 @@ const Jarvis = {
     }
 
     // gate / progress / how am i doing
-    if(has("gate","on track","progress","how am i doing","how am i","feedback","am i on track"))
-      return this.feedbackContent();
+    if(has("gate","on track","progress","how am i doing","how am i","feedback","am i on track")){
+      this.context.topic="gate"; return this.feedbackContent(); }
 
     // strategy / mission / vision
     if(has("strategy","mission","vision","purpose","positioning")){
+      this.context.topic="strategy";
       return {html:`<p><b>Purpose.</b> ${esc(KB.foundation.purpose)}</p><p><b>Strategy.</b> ${esc(KB.foundation.strategy)}</p><p><b>Promise.</b> ${esc(KB.brand.promise)}</p>`,
         speak:`${KB.foundation.purpose} The strategy: ${KB.foundation.strategy}`};
     }
 
     // pillars
     if(has("pillar")){
+      this.context.topic="pillars";
       return {html:`<p>Three strategic pillars:</p><ul>${KB.pillars.map(p=>`<li><b>${esc(p.n)}</b> — ${esc(p.o)}</li>`).join("")}</ul><p>Governance is the wedge — the weakest pillar across every competitor.</p>`,
         speak:`Three pillars: ${KB.pillars.map(p=>p.n).join(", ")}. Governance is the wedge.`};
     }
 
     // pyramid / levels / academy / framework / certification
     if(has("level","pyramid","framework","academy","certification","journey","course")){
+      this.context.topic="levels";
       return {html:`<p>The academy is a five-level journey — <b>${esc(KB.brand.promise)}</b></p><ul>${KB.pyramid.map(L=>`<li><b>L${L.lvl} · ${esc(L.name)}</b> → ${esc(L.cert)}</li>`).join("")}</ul><p>Most educators only teach Level 2. Teaching all five is the differentiation.</p>`,
         speak:`Five levels: Fluency, Application, Adoption, Governance, Leadership. From AI awareness to AI leadership. Most educators only teach level two — teaching all five is your edge.`};
     }
@@ -1284,6 +1322,7 @@ const Jarvis = {
     }
     // revenue / money
     if(has("revenue","money","monet","price","pricing","ebook","sell")){
+      this.context.topic="revenue";
       return {html:`<p>Revenue comes in stages:</p><ul>${KB.revenueStages.map(s=>`<li><b>${esc(s.s)}</b> — ${esc(s.d)} <span style="color:var(--cyan)">${esc(s.price)}</span></li>`).join("")}</ul><p>But Phase 1 is zero selling — build the audience first.</p>`,
         speak:`Revenue stages: audience, then digital products at 19 to 49 dollars, then corporate training, then the academy certifications. But Phase 1 is zero selling.`};
     }
@@ -1318,20 +1357,85 @@ const Jarvis = {
     }
     // help
     if(has("help","what can you do","commands","how do you work")){
-      return {html:`<p>I know your whole It's AI Education plan. Try:</p><ul>
-        <li>"Brief me" / "What's my plan today?"</li>
-        <li>"How am I doing?" — gate feedback</li>
+      return {html:`<p>We talk both ways — ask me things, tell me how it's going, and I'll respond and ask back. Try:</p><ul>
+        <li>"Brief me" / "What's my plan today?" · "What about tomorrow?"</li>
+        <li>"How am I doing?" then "why?" or "tell me more"</li>
         <li>"Read me the strategy" · "the pillars" · "the levels"</li>
+        <li>Tell me feedback: "the 8pm carousel flopped" or "that reel got loads of saves" — I'll respond and log it</li>
         <li>"I have 40 subscribers" — I'll update the tracker</li>
-        <li>"Log: posted the settings carousel, 14 saves"</li>
-        <li>"Mark the reel done"</li></ul>
-        <p class="muted">Add a Claude API key in settings for open-ended conversation and content drafting.</p>`,
-        speak:"I know your whole plan. Ask me to brief you, tell you today's posts, how you're doing against the gate, or read the strategy. Tell me your numbers and I'll track them."};
+        <li>"Mark the reel done" · "Log: 14 saves in the first hour"</li></ul>
+        <p class="muted">Add a Claude API key in settings for fully open-ended conversation and content drafting.</p>`,
+        speak:"We talk both ways. Ask me to brief you or for today's or tomorrow's posts, tell me how a post did and I'll respond and log it, ask how you're doing then say tell me more, or give me your numbers to track."};
     }
 
-    // fallback
-    return {html:`<p>I've got your strategy, working plan, day-by-day plan and the five-level academy loaded — but I answer best offline to specific questions. Try <b>"brief me"</b>, <b>"today's posts"</b>, <b>"how am I doing?"</b>, or <b>"read the strategy"</b>.</p><p class="muted">For open conversation and drafting, add your Claude API key in ⚙ settings.</p>`,
-      speak:"I have your full plan loaded. Ask me to brief you, for today's posts, how you're doing, or to read the strategy. For open conversation, add a Claude API key in settings."};
+    // fallback → treat anything else as feedback / a statement and respond in kind (two-way)
+    return this.respondFeedback(q, t);
+  },
+
+  /* ---------- Conversational helpers (make it two-way) ---------- */
+  respondFeedback(q, t){
+    const name=State.name||"Tony";
+    const pos=/(great|good|well|up|grew|growth|best|love|worked|working|strong|win|won|saved|saves|viral|smash|killed it|nailed)/.test(t);
+    const neg=/(bad|worse|down|drop|dropp|flat|flop|didn'?t work|not working|stuck|behind|frustrat|slow|low|no saves|nothing|quiet|disappoint)/.test(t);
+    const looksLikeUpdate=/(post|posted|reel|carousel|save|reach|follow|comment|subscriber|dm|keyword|linkedin|story|view|engag)/.test(t) || /\d/.test(t);
+    let ack, question, then={pending:"reflect"};
+    if(neg){
+      ack=`Heard — and thanks for being straight with me. One post never decides anything; judge on the trend across ten. A dip in the first two seconds is a hook problem; watched-but-not-saved is a payoff or CTA problem.`;
+      question=`Which was it, do you think — the hook, the payoff, or the ask? Or want me to pull the format rules so we sharpen the next one?`;
+    } else if(pos){
+      ack=`Love that, ${name}. Bank what worked — the plan says once a hook shape lands, copy that pattern into the next posts.`;
+      question=`Want me to count it as one of your three repeatable outsized-reach hooks? Say "yes" and I'll bump the gate.`;
+      then={pending:"logRepeatable"};
+    } else {
+      ack=`Got it, ${name}.`;
+      question=`Want me to log that, and is there anything in today's plan you'd like to adjust?`;
+    }
+    let logged="";
+    if(looksLikeUpdate){ State.logs.unshift({when:new Date().toLocaleString(),type:"update",text:q}); save(); App.renderLog(); logged=` <span class="muted">(saved to your log ✓)</span>`; }
+    this.context.topic="feedback";
+    return {html:`<p>${ack}${logged}</p><p>${question}</p>`, speak:`${ack} ${question}`, then};
+  },
+  expandTopic(topic){
+    const T=todayISO(), w=weekOf(T), wk=KB.weeks[w], g=gateStatus();
+    if(topic==="today"||topic==="feedback"){
+      return {html:`<p>Here's <b>how</b> to make each post land: ${esc(KB.rules.postFormat)}</p><p>Before it goes out, run the three tests — ${esc(KB.rules.tests)}</p>`,
+        speak:`Here's how to build each post. ${KB.rules.postFormat}. Then run the three tests: ${KB.rules.tests}`};
+    }
+    if(topic==="gate"){
+      const m=State.metrics;
+      let next = m.subs<150?`Subscribers (${m.subs}/150) is the tightest — from Week 4 every comment-keyword CTA feeds the list. That's your lever.`
+        : m.posts<40?`Posts (${m.posts}/40) — just hold the cadence, 1–2 a day, batched on the weekend.`
+        : !m.dm?`DM automation isn't reliable yet — test the full ManyChat flow twice yourself before Week 4.`
+        : `You're close. Lock the ebook outline from your highest-save posts and you're basically through.`;
+      return {html:`<p>${esc(next)}</p><p class="muted">Remember the gate is a floor, not a finish line — 40 posts is the minimum, 60–75 is the real target.</p>`, speak:next};
+    }
+    if(topic==="strategy"){
+      return {html:`<p><b>Vision.</b> ${esc(KB.foundation.vision)}</p><p><b>Mission.</b> ${esc(KB.foundation.mission)}</p><p>Governance is the wedge because it's the weakest pillar across every competitor — and the EU AI Act literacy obligation has a real deadline behind it.</p>`,
+        speak:`${KB.foundation.vision} ${KB.foundation.mission} Governance is the wedge — the weakest pillar across competitors, with a regulatory deadline behind it.`};
+    }
+    if(topic==="levels"){
+      const L=KB.pyramid[0];
+      return {html:`<p>Start at the base — <b>Level 1 · AI Fluency</b> (${esc(L.cert)}), for ${esc(L.who)}. Modules: ${L.mods.map(esc).join(", ")}. Outcome: ${esc(L.out)}</p><p>Instagram moves people into Level 1; YouTube into 1–2; workshops into 3; corporate into 3–4; advisory into 5. The feed is the top of that funnel.</p>`,
+        speak:`Start at Level 1, AI Fluency, for beginners and frontline staff. Instagram moves people into level 1, YouTube into 1 and 2, workshops into 3, corporate programs into 3 and 4, advisory into 5.`};
+    }
+    if(topic==="pillars"){
+      return {html:`<ul>${KB.pillars.map(p=>`<li><b>${esc(p.n)}</b> — for ${esc(p.a)}. ${esc(p.o)}</li>`).join("")}</ul><p>Governance is deliberately first-class here — that's the white space nobody else owns.</p>`,
+        speak:`Fluency is for beginners and managers, Governance for leaders and HR, Adoption for organizations. Governance is the white space nobody else owns.`};
+    }
+    if(topic==="revenue"){
+      return {html:`<p>The timing matters: Phase 1 (now) is zero selling — pure audience. Phase 2 in September is the first ebook at $19–27. Phase 3 in October opens 1-1 consulting to the warm list. Phase 4 in Nov–Dec packages it into a course.</p>`,
+        speak:`Phase 1 now is zero selling. September brings the first ebook at 19 to 27 dollars. October opens consulting. November and December package it into a course.`};
+    }
+    return null;
+  },
+  dayPlan(offset){
+    const base=new Date(todayISO()+"T00:00:00"); base.setDate(base.getDate()+offset);
+    const d=iso(base); const posts=postsFor(d);
+    const label=fmtDateLabel(d);
+    if(!posts.length) return {html:`<p><b>${esc(label)}</b> — nothing in the plan for that day${d<KB.daily[0].d||d>KB.daily[KB.daily.length-1].d?" (outside the Phase 1 window)":", it's a rest/engage day"}.</p>`, speak:`${label} has nothing scheduled.`};
+    this.context.topic="today";
+    return {html:`<p><b>${esc(label)}</b>:</p><ul>${posts.map(p=>`<li>${p.time?`<b>${esc(p.time)}</b> · `:""}${esc(p.fmt)} — ${esc(p.hook)}${p.cta?` <span style="color:var(--cyan)">(${esc(p.cta)})</span>`:""}</li>`).join("")}</ul>`,
+      speak:`${label}. ${posts.map(p=>`${p.time?"At "+p.time+", ":""}a ${p.fmt}: ${p.hook}`).join(". ")}`};
   },
 
   briefContent(){
@@ -1350,10 +1454,13 @@ const Jarvis = {
                   State.metrics.subs<50 ? "Subscribers are the tightest constraint — every keyword CTA from Week 4 feeds this." :
                   "Stay on the rhythm — batch on the weekend, don't improvise daily.";
     body += `<p class="muted">${nudge}</p>`;
+    const ask = posts.length ? `<p>Have you posted the ${esc(posts[0].time)} ${esc(posts[0].fmt.toLowerCase())} yet?</p>` : `<p>Anything you want to log or adjust before you start?</p>`;
+    body += ask;
     const speak = `${salut}, ${name}. It's ${fmtDateLabel(T)}, week ${w}. `+
       (posts.length?`You have ${posts.length} posts today. ${posts.map(p=>`At ${p.time}, a ${p.fmt}: ${p.hook}.`).join(" ")} `:`It's a build day today. `)+
-      `You're at ${g.metCount} of 7 gate conditions and ${State.metrics.subs} subscribers. ${nudge}`;
-    return {html:body, speak};
+      `You're at ${g.metCount} of 7 gate conditions and ${State.metrics.subs} subscribers. ${nudge} `+
+      (posts.length?`Have you posted the ${posts[0].time} ${posts[0].fmt} yet?`:`Anything to log before you start?`);
+    return {html:body, speak, then:{pending: posts.length?"postedToday":null}};
   },
   feedbackContent(){
     const g=gateStatus(); const m=State.metrics;
@@ -1371,11 +1478,13 @@ const Jarvis = {
     let body=`<p><b>${esc(verdict)}</b> ${g.metCount}/7 conditions met (${g.overall}% overall).</p>`;
     body += gaps.length ? `<p>Focus next on:</p><ul>${gaps.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>` : `<p>Every condition is green. ✓</p>`;
     body += `<p class="muted">Judge on trends across 10+ posts — never a single post.</p>`;
-    return {html:body, speak:`${verdict}. ${g.metCount} of 7 conditions met. ${gaps.length?"Focus next on "+gaps.join(", ")+".":"Everything is green."}`};
+    body += `<p>Want me to break down what would move the needle fastest? Just say "why" or "tell me more".</p>`;
+    this.context.topic="gate";
+    return {html:body, speak:`${verdict}. ${g.metCount} of 7 conditions met. ${gaps.length?"Focus next on "+gaps.join(", ")+".":"Everything is green."} Say "tell me more" and I'll break down what moves the needle fastest.`};
   },
 
-  brief(){ this.toggleConsole(true); const c=this.briefContent(); this.say(c.html,c.speak); this.history.push({role:"assistant",content:c.speak}); },
-  feedback(){ this.toggleConsole(true); const c=this.feedbackContent(); this.say(c.html,c.speak); },
+  brief(){ this.toggleConsole(true); const c=this.briefContent(); this.say(c.html,c.speak); this.context.pending=c.then?.pending||null; this.history.push({role:"assistant",content:c.speak}); },
+  feedback(){ this.toggleConsole(true); const c=this.feedbackContent(); this.say(c.html,c.speak); this.context.pending=null; },
 
   /* ---------- Optional Claude API ---------- */
   systemPrompt(){

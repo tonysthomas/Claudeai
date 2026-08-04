@@ -365,15 +365,22 @@
       tl.fromTo("#a3", { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.32, ease: "power3.out" }, 44.8);
       tl.to("#agenda", { opacity: 0, y: -12, duration: 0.32, ease: "power2.in" }, 48.1);
 
-      // OUTRO (48.9 -> end)
-      tl.fromTo("#outro-scrim", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.out" }, 48.9);
-      tl.fromTo("#outro", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 49.0);
+      // OUTRO (49.2 -> end; after the last caption clears at ~49.14)
+      tl.fromTo("#outro-scrim", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.out" }, 49.2);
+      tl.fromTo("#outro", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 49.3);
 
       // ---- captions ----
+      // Each group's visible window is [tIn, tOut]; tOut is clamped to the NEXT
+      // group's start so two caption pills can never overlap at the bottom-center
+      // spot (autoAlpha drives opacity + visibility together for clean seeking).
       var ACCENT = "#FFC24B";
       GROUPS.forEach(function (g, gi) {
         var cgSel = "#cg-" + gi;
-        tl.fromTo(cgSel, { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.22, ease: "power3.out" }, Math.max(0, g.start - 0.12));
+        var nextStart = (gi < GROUPS.length - 1) ? GROUPS[gi + 1].start : 51;
+        var tIn = g.start;
+        var tOut = Math.min(g.end + 0.14, nextStart);
+        tl.set(cgSel, { autoAlpha: 0, y: 20 }, 0);
+        tl.to(cgSel, { autoAlpha: 1, y: 0, duration: 0.14, ease: "power3.out" }, tIn);
         // karaoke per word
         g.words.forEach(function (w, wi) {
           var wSel = "#w-" + gi + "-" + wi;
@@ -383,19 +390,21 @@
           revertAt = Math.max(w.start + 0.11, revertAt - 0.02);
           tl.to(wSel, { color: "#ffffff", scale: 1.0, duration: 0.12, ease: "power2.inOut" }, revertAt);
         });
-        // exit + hard kill
-        tl.to(cgSel, { opacity: 0, y: -10, duration: 0.14, ease: "power2.in" }, g.end);
-        tl.set(cgSel, { opacity: 0, visibility: "hidden" }, g.end + 0.14);
+        // exit fully completes at tOut (= no later than next group's entrance)
+        var exitStart = Math.max(tIn + 0.16, tOut - 0.1);
+        tl.to(cgSel, { autoAlpha: 0, y: -8, duration: Math.max(0.04, tOut - exitStart), ease: "power2.in" }, exitStart);
       });
 
-      // ---- caption self-lint: verify each group hidden after its end ----
+      // ---- caption self-lint: verify at most one group visible at any boundary ----
       GROUPS.forEach(function (g, gi) {
+        var nextStart = (gi < GROUPS.length - 1) ? GROUPS[gi + 1].start : 51;
+        var tOut = Math.min(g.end + 0.14, nextStart);
         var el = document.getElementById("cg-" + gi);
         if (!el) return;
-        tl.seek(g.end + 0.02);
+        tl.seek(tOut + 0.03);
         var c = window.getComputedStyle(el);
         if (c.opacity !== "0" && c.visibility !== "hidden") {
-          console.warn("[caption-lint] group " + gi + " still visible at t=" + (g.end + 0.02).toFixed(2));
+          console.warn("[caption-lint] group " + gi + " still visible at t=" + (tOut + 0.03).toFixed(2));
         }
       });
       tl.seek(0);

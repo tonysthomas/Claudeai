@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        margin: 0; width: 1920px; height: 1080px;
+        overflow: hidden; background: #000;
+        font-family: "Inter", system-ui, sans-serif;
+      }
+
+      :root {
+        --ink: #0E1626;
+        --plate: rgba(12, 20, 34, 0.82);
+        --text: #FFFFFF;
+        --dim: #AEB9CC;
+        --gold: #FFC24B;
+        --sky: #5AA9FF;
+        --line: rgba(255, 255, 255, 0.14);
+      }
+
+      /* ---- base video ---- */
+      #speaker {
+        position: absolute; inset: 0;
+        width: 1920px; height: 1080px;
+        object-fit: cover; object-position: center;
+        z-index: 1;
+      }
+
+      /* ---- subtle vignette to focus the frame ---- */
+      #vignette {
+        position: absolute; inset: 0; z-index: 2; pointer-events: none;
+        background:
+          radial-gradient(120% 90% at 50% 42%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.28) 100%);
+      }
+
+      /* ---- shared overlay type ---- */
+      .kicker {
+        font-weight: 700; font-size: 22px; letter-spacing: 0.22em;
+        text-transform: uppercase; color: var(--gold);
+      }
+      .plate {
+        background: var(--plate);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        backdrop-filter: blur(2px);
+      }
+
+      /* ---- brand bug (top-left, persistent) ---- */
+      #bug {
+        position: absolute; left: 90px; top: 74px; z-index: 20; opacity: 0;
+        display: flex; align-items: center; gap: 12px;
+        padding: 12px 20px 12px 16px;
+      }
+      #bug .dot {
+        width: 12px; height: 12px; border-radius: 50%;
+        background: var(--gold); box-shadow: 0 0 14px rgba(255,194,75,0.7);
+      }
+      #bug .txt {
+        font-weight: 800; font-size: 22px; letter-spacing: 0.14em;
+        text-transform: uppercase; color: var(--text);
+      }
+
+      /* ---- left-column card cluster ---- */
+      .lcard {
+        position: absolute; left: 90px; z-index: 15; opacity: 0;
+        width: 380px; padding: 26px 28px;
+        display: flex; flex-direction: column; gap: 12px;
+      }
+      #hook  { top: 300px; }
+      #kp    { top: 300px; }
+      #name  { top: 320px; }
+      #agenda{ top: 250px; }
+
+      .lcard .big {
+        font-weight: 800; font-size: 38px; line-height: 1.1;
+        letter-spacing: -0.01em; color: var(--text);
+      }
+      .lcard .big.accent { color: var(--gold); }
+      .lcard .sub { font-weight: 600; font-size: 24px; color: var(--dim); }
+
+      .rule {
+        height: 4px; width: 64px; border-radius: 3px;
+        background: var(--gold);
+      }
+
+      /* name card */
+      #name .who { font-weight: 800; font-size: 44px; color: var(--text); letter-spacing: -0.01em; }
+      #name .role { font-weight: 600; font-size: 24px; color: var(--dim); }
+
+      /* agenda */
+      #agenda .title { font-weight: 700; font-size: 22px; letter-spacing: 0.2em;
+        text-transform: uppercase; color: var(--gold); margin-bottom: 4px; }
+      .arow { display: flex; align-items: baseline; gap: 16px; opacity: 0; }
+      .arow .idx { font-weight: 800; font-size: 30px; color: var(--sky);
+        font-variant-numeric: tabular-nums; min-width: 42px; }
+      .arow .lbl { font-weight: 700; font-size: 34px; color: var(--text); }
+
+      /* ---- captions (bottom-center) ---- */
+      #caps { position: absolute; left: 0; right: 0; bottom: 66px; z-index: 30; }
+      .cg {
+        position: absolute; left: 0; right: 0; bottom: 0;
+        text-align: center; opacity: 0;
+      }
+      .pill {
+        display: inline-block; max-width: 1500px;
+        padding: 16px 30px; border-radius: 18px;
+        background: var(--plate); border: 1px solid var(--line);
+        box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+      }
+      .cw {
+        display: inline-block; color: #fff; opacity: 0.38;
+        font-weight: 800; font-size: 56px; line-height: 1.14;
+        letter-spacing: -0.005em; margin: 0 9px; transform-origin: center bottom;
+      }
+
+      /* ---- outro (bottom-center, after speech) ---- */
+      #outro {
+        position: absolute; left: 0; right: 0; bottom: 96px; z-index: 25;
+        text-align: center; opacity: 0;
+      }
+      #outro .inner { display: inline-flex; flex-direction: column; align-items: center;
+        gap: 10px; padding: 26px 46px; }
+      #outro .brand { font-weight: 800; font-size: 26px; letter-spacing: 0.18em;
+        text-transform: uppercase; color: var(--gold); }
+      #outro .line { font-weight: 800; font-size: 44px; color: var(--text); letter-spacing: -0.01em; }
+      #outro-scrim {
+        position: absolute; left: 0; right: 0; bottom: 0; height: 340px; z-index: 24;
+        opacity: 0; pointer-events: none;
+        background: linear-gradient(to top, rgba(6,10,18,0.85), rgba(6,10,18,0));
+      }
+    </style>
+  </head>
+
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="51"
+      data-width="1920"
+      data-height="1080"
+    >
+      <!-- base footage: framework-managed video clip -->
+      <video
+        id="speaker"
+        data-start="0"
+        data-duration="51"
+        data-track-index="0"
+        src="assets/speaker.mp4"
+        muted
+        playsinline
+      ></video>
+
+      <!-- voice (original audio) -->
+      <audio
+        id="voice"
+        data-start="0"
+        data-duration="51"
+        data-track-index="2"
+        src="assets/speaker.mp4"
+        data-volume="1"
+      ></audio>
+
+      <!-- music bed (pre-ducked + faded in ffmpeg) -->
+      <audio
+        id="music"
+        data-start="0"
+        data-duration="51"
+        data-track-index="3"
+        src="assets/music-bed-mix.mp3"
+        data-volume="1"
+      ></audio>
+
+      <!-- focus vignette -->
+      <div id="vignette"></div>
+
+      <!-- persistent brand bug -->
+      <div id="bug">
+        <span class="dot"></span>
+        <span class="txt">It's&nbsp;AI&nbsp;Education</span>
+      </div>
+
+      <!-- HOOK (left) -->
+      <div id="hook" class="lcard">
+        <div class="kicker">The setup</div>
+        <div id="hook-l1" class="big">Same question, asked twice.</div>
+        <div id="hook-l2" class="big accent">Two different answers.</div>
+      </div>
+
+      <!-- KEY POINT (left) -->
+      <div id="kp" class="lcard">
+        <div class="kicker">Why it matters</div>
+        <div id="kp-big" class="big">The one difference that defines AI</div>
+        <div id="kp-rule" class="rule"></div>
+        <div id="kp-sub" class="sub">in 2026</div>
+      </div>
+
+      <!-- NAME CARD (left) -->
+      <div id="name" class="lcard">
+        <div id="name-who" class="who">Tony Thomas</div>
+        <div id="name-role" class="role">It's AI Education&nbsp;·&nbsp;Lesson 3</div>
+      </div>
+
+      <!-- AGENDA (left) -->
+      <div id="agenda" class="lcard">
+        <div id="agenda-title" class="title">In this video</div>
+        <div id="a1" class="arow"><span class="idx">01</span><span class="lbl">The idea</span></div>
+        <div id="a2" class="arow"><span class="idx">02</span><span class="lbl">A live demo</span></div>
+        <div id="a3" class="arow"><span class="idx">03</span><span class="lbl">3 takeaways</span></div>
+      </div>
+
+      <!-- OUTRO (bottom) -->
+      <div id="outro-scrim"></div>
+      <div id="outro">
+        <div class="inner">
+          <div class="brand">It's AI Education</div>
+          <div class="line">Lesson 3 — What is Generative AI?</div>
+        </div>
+      </div>
+
+      <!-- captions get injected here -->
+      <div id="caps"></div>
+    </div>
+
+    <script>
+      // ---- transcript (word-level, embedded; times are relative to speaker.mp4) ----
+      var WORDS = [
+        {"text":"Asking","start":0,"end":1.02},{"text":"AI","start":1.02,"end":1.36},
+        {"text":"the","start":1.36,"end":1.87},{"text":"same","start":2.26,"end":2.55},
+        {"text":"question","start":2.61,"end":3.92},{"text":"twice","start":3.92,"end":4.77},
+        {"text":"and","start":4.85,"end":5},{"text":"you","start":5,"end":5.08},
+        {"text":"can","start":5.08,"end":5.43},{"text":"get","start":5.43,"end":5.65},
+        {"text":"two","start":6.15,"end":6.49},{"text":"completely","start":6.61,"end":6.93},
+        {"text":"different","start":6.93,"end":7.32},{"text":"answers.","start":7.32,"end":8},
+        {"text":"A","start":8,"end":8.08},{"text":"search","start":8.08,"end":8.57},
+        {"text":"engine","start":8.57,"end":9.06},{"text":"never","start":9.06,"end":9.47},
+        {"text":"does","start":9.47,"end":9.8},{"text":"that.","start":9.8,"end":10.4},
+        {"text":"Type","start":10.4,"end":10.73},{"text":"the","start":10.73,"end":10.98},
+        {"text":"same","start":10.98,"end":11.31},{"text":"thing","start":11.31,"end":11.72},
+        {"text":"into","start":11.72,"end":12},{"text":"Google","start":12.05,"end":12.53},
+        {"text":"twice,","start":12.71,"end":13.1},{"text":"you","start":13.19,"end":13.5},
+        {"text":"get","start":13.5,"end":13.65},{"text":"the","start":13.74,"end":13.92},
+        {"text":"same","start":14.16,"end":14.48},{"text":"result.","start":14.48,"end":16},
+        {"text":"That's","start":16,"end":16.45},{"text":"one","start":16.45,"end":16.68},
+        {"text":"difference","start":16.69,"end":17.48},{"text":"is","start":17.48,"end":17.63},
+        {"text":"the","start":17.63,"end":17.86},{"text":"most","start":17.86,"end":18.16},
+        {"text":"important","start":18.26,"end":18.88},{"text":"thing","start":18.88,"end":19.24},
+        {"text":"to","start":19.27,"end":19.42},{"text":"understand","start":19.42,"end":20.21},
+        {"text":"about","start":20.21,"end":20.53},{"text":"AI","start":20.6,"end":20.75},
+        {"text":"in","start":20.85,"end":21},{"text":"2026.","start":21,"end":22},
+        {"text":"And","start":22,"end":22.27},{"text":"by","start":22.27,"end":22.45},
+        {"text":"end","start":22.45,"end":22.71},{"text":"of","start":22.71,"end":22.9},
+        {"text":"this","start":22.9,"end":23.26},{"text":"lesson,","start":23.26,"end":24},
+        {"text":"you","start":24,"end":24.26},{"text":"will","start":24.26,"end":24.54},
+        {"text":"be","start":24.61,"end":24.73},{"text":"able","start":24.79,"end":25.09},
+        {"text":"to","start":25.1,"end":25.24},{"text":"spot","start":25.27,"end":25.61},
+        {"text":"in","start":25.61,"end":25.78},{"text":"any","start":25.78,"end":26},
+        {"text":"tool","start":26.03,"end":26.37},{"text":"for","start":26.37,"end":26.55},
+        {"text":"about","start":26.71,"end":27.04},{"text":"five","start":27.04,"end":27.38},
+        {"text":"seconds.","start":27.38,"end":28},{"text":"Welcome","start":28,"end":28.45},
+        {"text":"back","start":28.45,"end":28.69},{"text":"to","start":28.7,"end":28.82},
+        {"text":"It's","start":28.82,"end":29.06},{"text":"AI","start":29.06,"end":29.18},
+        {"text":"Education.","start":29.18,"end":30},{"text":"I","start":30,"end":30.15},
+        {"text":"am","start":30.26,"end":30.45},{"text":"Tony","start":30.45,"end":31.05},
+        {"text":"Thomas.","start":31.05,"end":32.23},{"text":"This","start":32.23,"end":32.52},
+        {"text":"is","start":32.52,"end":32.66},{"text":"lesson","start":32.85,"end":33.13},
+        {"text":"number","start":33.19,"end":33.58},{"text":"three,","start":33.58,"end":34.11},
+        {"text":"what","start":34.2,"end":34.35},{"text":"is","start":34.35,"end":34.46},
+        {"text":"generative","start":34.61,"end":34.9},{"text":"AI?","start":34.9,"end":35},
+        {"text":"Whether","start":35,"end":35.6},{"text":"you","start":35.6,"end":35.86},
+        {"text":"are","start":35.86,"end":36.12},{"text":"a","start":36.12,"end":36.2},
+        {"text":"student,","start":36.2,"end":37},{"text":"running","start":37.26,"end":37.47},
+        {"text":"a","start":37.47,"end":37.52},{"text":"small","start":37.53,"end":37.87},
+        {"text":"business","start":37.87,"end":38.41},{"text":"or","start":38.41,"end":38.47},
+        {"text":"just","start":38.54,"end":38.81},{"text":"retired","start":38.81,"end":39.28},
+        {"text":"and","start":39.28,"end":39.48},{"text":"curious,","start":39.48,"end":40.1},
+        {"text":"there","start":40.19,"end":40.43},{"text":"are","start":40.43,"end":40.61},
+        {"text":"three","start":40.61,"end":40.92},{"text":"parts","start":41.2,"end":41.27},
+        {"text":"in","start":41.27,"end":41.39},{"text":"this","start":41.39,"end":41.64},
+        {"text":"video.","start":41.64,"end":42},{"text":"The","start":42,"end":42.25},
+        {"text":"idea,","start":42.25,"end":42.74},{"text":"a","start":42.74,"end":42.82},
+        {"text":"live","start":42.82,"end":43.15},{"text":"demo","start":43.15,"end":43.48},
+        {"text":"you","start":43.48,"end":43.73},{"text":"can","start":43.73,"end":43.98},
+        {"text":"do","start":43.98,"end":44.14},{"text":"with","start":44.26,"end":44.47},
+        {"text":"me","start":44.47,"end":44.63},{"text":"and","start":44.63,"end":44.88},
+        {"text":"three","start":44.88,"end":45.3},{"text":"things","start":45.3,"end":45.8},
+        {"text":"to","start":45.8,"end":45.96},{"text":"take","start":45.96,"end":46.29},
+        {"text":"away.","start":46.29,"end":47},{"text":"No","start":47,"end":47.23},
+        {"text":"jargon,","start":47.23,"end":48.16},{"text":"let's","start":48.2,"end":48.74},
+        {"text":"go.","start":48.74,"end":49}
+      ];
+
+      // ---- group words into caption chunks (<=5 words, break on sentence end / >=0.5s pause) ----
+      function groupWords(words) {
+        var groups = [], cur = [];
+        for (var i = 0; i < words.length; i++) {
+          var w = words[i], next = words[i + 1];
+          cur.push(w);
+          var endsSentence = /[.?!]$/.test(w.text);
+          var gap = next ? (next.start - w.end) : 0;
+          if (!next || endsSentence || cur.length >= 5 || gap >= 0.5) {
+            groups.push({ words: cur, start: cur[0].start, end: cur[cur.length - 1].end });
+            cur = [];
+          }
+        }
+        return groups;
+      }
+      var GROUPS = groupWords(WORDS);
+
+      // ---- render caption DOM (before building the timeline) ----
+      var capsEl = document.getElementById("caps");
+      GROUPS.forEach(function (g, gi) {
+        var cg = document.createElement("div");
+        cg.className = "cg"; cg.id = "cg-" + gi;
+        var pill = document.createElement("div");
+        pill.className = "pill";
+        g.words.forEach(function (w, wi) {
+          var s = document.createElement("span");
+          s.className = "cw"; s.id = "w-" + gi + "-" + wi;
+          s.textContent = w.text;
+          pill.appendChild(s);
+        });
+        cg.appendChild(pill);
+        capsEl.appendChild(cg);
+      });
+
+      // ---- build the timeline ----
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+
+      // brand bug
+      tl.fromTo("#bug", { opacity: 0, y: -14 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 0.5);
+      tl.to("#bug", { opacity: 0, y: -10, duration: 0.4, ease: "power2.in" }, 50.4);
+
+      // HOOK  (2.0 -> 8.2)
+      tl.fromTo("#hook", { opacity: 0 }, { opacity: 1, duration: 0.2 }, 1.6);
+      tl.from("#hook .kicker", { opacity: 0, y: 14, duration: 0.3, ease: "power3.out" }, 1.7);
+      tl.from("#hook-l1", { opacity: 0, y: 22, duration: 0.32, ease: "power3.out" }, 1.85);
+      tl.from("#hook-l2", { opacity: 0, y: 22, duration: 0.34, ease: "power3.out" }, 5.5);
+      tl.to("#hook", { opacity: 0, y: -12, duration: 0.3, ease: "power2.in" }, 8.0);
+
+      // KEY POINT (16.5 -> 23.0)
+      tl.fromTo("#kp", { opacity: 0 }, { opacity: 1, duration: 0.2 }, 16.4);
+      tl.from("#kp .kicker", { opacity: 0, y: 14, duration: 0.3, ease: "power3.out" }, 16.5);
+      tl.from("#kp-big", { opacity: 0, y: 22, duration: 0.34, ease: "power3.out" }, 16.65);
+      tl.from("#kp-rule", { scaleX: 0, transformOrigin: "left center", duration: 0.4, ease: "power2.out" }, 17.0);
+      tl.from("#kp-sub", { opacity: 0, y: 14, duration: 0.3, ease: "power2.out" }, 20.6);
+      tl.to("#kp", { opacity: 0, y: -12, duration: 0.3, ease: "power2.in" }, 22.7);
+
+      // NAME CARD (29.2 -> 35.0)
+      tl.fromTo("#name", { opacity: 0 }, { opacity: 1, duration: 0.2 }, 29.2);
+      tl.from("#name-who", { opacity: 0, x: -22, duration: 0.36, ease: "power3.out" }, 29.3);
+      tl.from("#name-role", { opacity: 0, x: -18, duration: 0.34, ease: "power2.out" }, 29.55);
+      tl.to("#name", { opacity: 0, y: -12, duration: 0.3, ease: "power2.in" }, 34.7);
+
+      // AGENDA (40.9 -> 48.4)
+      tl.fromTo("#agenda", { opacity: 0 }, { opacity: 1, duration: 0.2 }, 40.7);
+      tl.from("#agenda-title", { opacity: 0, y: 14, duration: 0.3, ease: "power3.out" }, 40.8);
+      tl.fromTo("#a1", { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.32, ease: "power3.out" }, 41.9);
+      tl.fromTo("#a2", { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.32, ease: "power3.out" }, 42.7);
+      tl.fromTo("#a3", { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.32, ease: "power3.out" }, 44.8);
+      tl.to("#agenda", { opacity: 0, y: -12, duration: 0.32, ease: "power2.in" }, 48.1);
+
+      // OUTRO (48.9 -> end)
+      tl.fromTo("#outro-scrim", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.out" }, 48.9);
+      tl.fromTo("#outro", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 49.0);
+
+      // ---- captions ----
+      var ACCENT = "#FFC24B";
+      GROUPS.forEach(function (g, gi) {
+        var cgSel = "#cg-" + gi;
+        tl.fromTo(cgSel, { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.22, ease: "power3.out" }, Math.max(0, g.start - 0.12));
+        // karaoke per word
+        g.words.forEach(function (w, wi) {
+          var wSel = "#w-" + gi + "-" + wi;
+          tl.set(wSel, { opacity: 1 }, w.start);
+          tl.to(wSel, { color: ACCENT, scale: 1.08, duration: 0.1, ease: "power2.out" }, w.start);
+          var revertAt = (wi < g.words.length - 1) ? g.words[wi + 1].start : w.end;
+          revertAt = Math.max(w.start + 0.11, revertAt - 0.02);
+          tl.to(wSel, { color: "#ffffff", scale: 1.0, duration: 0.12, ease: "power2.inOut" }, revertAt);
+        });
+        // exit + hard kill
+        tl.to(cgSel, { opacity: 0, y: -10, duration: 0.14, ease: "power2.in" }, g.end);
+        tl.set(cgSel, { opacity: 0, visibility: "hidden" }, g.end + 0.14);
+      });
+
+      // ---- caption self-lint: verify each group hidden after its end ----
+      GROUPS.forEach(function (g, gi) {
+        var el = document.getElementById("cg-" + gi);
+        if (!el) return;
+        tl.seek(g.end + 0.02);
+        var c = window.getComputedStyle(el);
+        if (c.opacity !== "0" && c.visibility !== "hidden") {
+          console.warn("[caption-lint] group " + gi + " still visible at t=" + (g.end + 0.02).toFixed(2));
+        }
+      });
+      tl.seek(0);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

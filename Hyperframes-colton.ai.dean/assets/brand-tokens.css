@@ -1,0 +1,16 @@
+:root {
+  /* TODO: fill in your brand colors */
+  --brand-bg: ;
+  --brand-surface: ;
+  --brand-surface-2: ;
+  --brand-border: ;
+  --brand-accent: ;
+  --brand-accent-glow: ;
+  --brand-warn: ;
+  --brand-text: ;
+  --brand-text-dim: ;
+
+  /* TODO: pick your typography */
+  --font-mono: ui-monospace, Menlo, monospace;
+  --font-display: system-ui, sans-serif;
+}

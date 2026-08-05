@@ -140,7 +140,7 @@
   }
   .item-emoji {
     width: 42px; height: 42px; flex: none; border-radius: 11px; background: var(--surface-2);
-    display: grid; place-items: center; font-size: 22px;
+    display: grid; place-items: center; font-size: 22px; overflow: hidden; background-size: cover; background-position: center;
   }
   .item-main { flex: 1; min-width: 0; }
   .item-name { font-weight: 650; font-size: 15px; display: flex; align-items: center; gap: 7px; }
@@ -153,11 +153,6 @@
   .badge.soon { background: var(--soon); }
   .badge.urgent { background: var(--urgent); }
   .badge.expired { background: var(--expired); }
-  .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
-  .dot.fresh { background: var(--fresh); }
-  .dot.soon { background: var(--soon); }
-  .dot.urgent { background: var(--urgent); }
-  .dot.expired { background: var(--expired); }
   .item-actions { display: flex; gap: 6px; flex: none; }
   .icon-btn {
     border: 1px solid var(--border); background: var(--surface); color: var(--text);
@@ -191,15 +186,17 @@
     background: var(--surface); color: var(--text);
   }
   .field-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .prefill-note { background: var(--brand-soft); color: var(--brand-ink); border-radius: var(--radius-sm); padding: 9px 12px; font-size: 12.5px; margin-bottom: 12px; display: flex; gap: 8px; align-items: flex-start; }
 
   /* ---------- Scan / quick add ---------- */
   .scan-drop {
-    border: 2px dashed var(--border); border-radius: var(--radius); padding: 26px 16px; text-align: center;
-    background: var(--surface); position: relative;
+    border: 2px dashed var(--border); border-radius: var(--radius); padding: 22px 16px; text-align: center;
+    background: var(--surface); position: relative; display: block;
   }
-  .scan-drop .big { font-size: 44px; }
-  .scan-drop h3 { margin: 8px 0 4px; }
+  .scan-drop .big { font-size: 40px; }
+  .scan-drop h3 { margin: 8px 0 4px; font-size: 16px; }
   .scan-drop p { color: var(--text-dim); font-size: 13px; margin: 0; }
+  .scan-two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .quick-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; }
   .quick {
     background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
@@ -217,26 +214,14 @@
   .chk { width: 24px; height: 24px; border-radius: 7px; border: 2px solid var(--border); display: grid; place-items: center; color: #fff; font-size: 14px; }
   .chk.on { background: var(--brand); border-color: var(--brand); }
 
-  /* ---------- Recipes ---------- */
-  .recipe { padding: 14px 15px; }
-  .recipe-top { display: flex; align-items: center; gap: 12px; }
-  .recipe-emoji { font-size: 30px; }
-  .recipe h3 { font-size: 16px; }
-  .recipe .match { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
-  .match-bar { height: 7px; background: var(--surface-2); border-radius: 999px; overflow: hidden; margin-top: 10px; }
-  .match-bar > i { display: block; height: 100%; background: var(--brand); border-radius: 999px; }
-  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 11px; }
-  .chip { font-size: 11.5px; padding: 4px 9px; border-radius: 999px; background: var(--surface-2); color: var(--text-dim); border: 1px solid var(--border); }
-  .chip.have { background: var(--brand-soft); color: var(--brand-ink); border-color: transparent; font-weight: 600; }
-  .chip.have.urgent { background: #fde4e4; color: #b91c1c; }
-  @media (prefers-color-scheme: dark) { .chip.have.urgent { background: #3a1717; color: #fca5a5; } }
-  .chip.missing { opacity: .8; }
-
   /* ---------- Dashboard bars ---------- */
   .breakdown { display: flex; flex-direction: column; gap: 10px; margin-top: 6px; }
   .bd-row { display: grid; grid-template-columns: 90px 1fr 34px; align-items: center; gap: 10px; font-size: 13px; }
   .bd-track { height: 9px; background: var(--surface-2); border-radius: 999px; overflow: hidden; }
   .bd-track > i { display: block; height: 100%; border-radius: 999px; }
+
+  /* ---------- photo preview in modal ---------- */
+  .photo-preview { width: 100%; height: 150px; border-radius: var(--radius-sm); background: var(--surface-2) center/cover no-repeat; border: 1px solid var(--border); display: grid; place-items: center; color: var(--text-dim); font-size: 13px; margin-bottom: 12px; }
 
   /* ---------- Bottom nav ---------- */
   .nav {
@@ -316,12 +301,20 @@
   <!-- ============ SCAN ============ -->
   <section class="view" id="view-scan">
     <div class="section-title">Add food to your fridge</div>
-    <label class="scan-drop" for="photoInput" id="scanDrop">
-      <div class="big">📷</div>
-      <h3>Snap or upload a photo</h3>
-      <p>Your Food Steward will recognise the items and log them for you.</p>
-      <input type="file" id="photoInput" accept="image/*" capture="environment" class="sr" />
-    </label>
+    <div class="scan-two">
+      <label class="scan-drop" for="photoInput">
+        <div class="big">📷</div>
+        <h3>Scan groceries</h3>
+        <p>Recognise several items from one photo.</p>
+        <input type="file" id="photoInput" accept="image/*" capture="environment" class="sr" />
+      </label>
+      <label class="scan-drop" for="labelInput">
+        <div class="big">🏷️</div>
+        <h3>Scan a label</h3>
+        <p>Read expiry, brand & date from packaging.</p>
+        <input type="file" id="labelInput" accept="image/*" capture="environment" class="sr" />
+      </label>
+    </div>
     <div id="recogArea"></div>
 
     <div class="section-title">Quick add common items</div>
@@ -343,13 +336,6 @@
     <div class="section-title">My Fridge</div>
     <div class="btn-row" id="fridgeFilters" style="margin-bottom:14px"></div>
     <div class="items" id="fridgeList"></div>
-  </section>
-
-  <!-- ============ RECIPES ============ -->
-  <section class="view" id="view-recipes">
-    <div class="section-title">Cook from what you have</div>
-    <p class="muted" style="margin:0 4px 14px; font-size:13.5px">Ranked to use up your most urgent ingredients first.</p>
-    <div id="recipeList"></div>
   </section>
 
   <!-- ============ DASHBOARD ============ -->
@@ -387,9 +373,9 @@
       <button class="btn primary block" id="saveSettings">Save</button>
     </div>
 
-    <div class="section-title">AI vision (optional)</div>
+    <div class="section-title">AI vision & OCR (optional)</div>
     <div class="card">
-      <p class="muted" style="margin:0 0 12px; font-size:13px">Add an OpenAI key to recognise real photos. Without one, scanning runs in demo mode. Your key stays only in this browser.</p>
+      <p class="muted" style="margin:0 0 12px; font-size:13px">Add an OpenAI key to recognise real photos and read expiry labels. Without one, scanning runs in demo mode. Your key stays only in this browser.</p>
       <div class="field">
         <label>OpenAI API key</label>
         <input id="setKey" type="password" placeholder="sk-..." />
@@ -404,7 +390,7 @@
         <button class="btn ghost" id="resetBtn" style="color:var(--urgent)">Clear all</button>
       </div>
     </div>
-    <p class="center muted" style="margin-top:18px; font-size:12px">FridgeMind AI · prototype · data stored locally in your browser</p>
+    <p class="center muted" style="margin-top:18px; font-size:12px">FridgeMind AI · Phase 1 (MVP) · data stored locally in your browser</p>
   </section>
 
   <!-- Bottom nav -->
@@ -412,8 +398,8 @@
     <button data-nav="home" class="active"><span class="ic">🏠</span>Home</button>
     <button data-nav="fridge"><span class="ic">🧊</span>Fridge</button>
     <div class="fab-slot"><button class="fab" data-nav="scan">＋</button></div>
-    <button data-nav="recipes"><span class="ic">🍳</span>Recipes</button>
     <button data-nav="dash"><span class="ic">📊</span>Stats</button>
+    <button data-nav="settings"><span class="ic">⚙️</span>Settings</button>
   </nav>
 </div>
 
@@ -430,9 +416,12 @@
 <script>
 "use strict";
 /* ============================================================
-   FridgeMind AI — self-contained prototype
-   Data mirrors the Supabase schema in the PRD but is stored
-   in localStorage so the whole flow works with no backend.
+   FridgeMind AI — Phase 1 (MVP) prototype
+   Scope: §6 MVP features only — smart inventory, image
+   recognition, OCR, leftovers, daily reminder, status,
+   dashboard. Recipes / shopping / sharing (Phase 2+) excluded.
+   Data mirrors the Supabase schema but is stored in
+   localStorage so the whole flow works with no backend.
    ============================================================ */
 
 /* ---------- Category knowledge base ---------- */
@@ -466,21 +455,6 @@ const ITEM_DB = {
   Bread:{e:"🍞",c:"Bakery"}, Rice:{e:"🍚",c:"Pantry"}, Pasta:{e:"🍝",c:"Pantry"},
   Juice:{e:"🧃",c:"Beverages"}, Water:{e:"💧",c:"Beverages"},
 };
-
-/* ---------- Recipe knowledge base (rule-based) ---------- */
-const RECIPES = [
-  { name:"Chicken Fried Rice", emoji:"🍛", need:["Chicken","Rice","Eggs","Onions"], opt:["Peppers","Carrots"] },
-  { name:"Veggie Omelette", emoji:"🍳", need:["Eggs","Tomatoes"], opt:["Cheese","Spinach","Peppers","Mushrooms","Onions"] },
-  { name:"Chicken Stir Fry", emoji:"🥘", need:["Chicken","Broccoli"], opt:["Carrots","Peppers","Onions"] },
-  { name:"Fresh Garden Salad", emoji:"🥗", need:["Lettuce","Tomatoes"], opt:["Cucumber","Carrots","Cheese","Avocado"] },
-  { name:"Broccoli Soup", emoji:"🍲", need:["Broccoli","Onions"], opt:["Potatoes","Cheese"] },
-  { name:"Grilled Cheese Toast", emoji:"🥪", need:["Bread","Cheese"], opt:["Tomatoes","Butter"] },
-  { name:"Banana Smoothie", emoji:"🥤", need:["Bananas","Milk"], opt:["Yogurt","Strawberries"] },
-  { name:"Tomato Pasta", emoji:"🍝", need:["Pasta","Tomatoes"], opt:["Cheese","Onions","Mushrooms"] },
-  { name:"Fruit Bowl", emoji:"🍓", need:["Apples","Bananas"], opt:["Oranges","Grapes","Strawberries","Yogurt"] },
-  { name:"Shrimp Rice Bowl", emoji:"🍤", need:["Shrimp","Rice"], opt:["Peppers","Broccoli","Onions"] },
-  { name:"Baked Fish & Veg", emoji:"🐟", need:["Fish","Potatoes"], opt:["Carrots","Lemons","Broccoli"] },
-];
 
 /* ---------- Storage ---------- */
 const KEY = "fridgemind.v1";
@@ -529,7 +503,7 @@ function emojiFor(item) {
 /* ---------- CRUD ---------- */
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 
-function addItem({ name, category, quantity, unit, purchase, shelf, expiry, note }) {
+function addItem({ name, category, quantity, unit, purchase, shelf, expiry, note, photo }) {
   const cat = CATEGORIES[category] ? category : "Other";
   const p = purchase || iso(today());
   const life = shelf || CATEGORIES[cat].shelf;
@@ -537,7 +511,7 @@ function addItem({ name, category, quantity, unit, purchase, shelf, expiry, note
   store.items.push({
     id: uid(), name: name.trim(), category: cat,
     quantity: quantity || 1, unit: unit || "",
-    purchase: p, shelf: life, expiry: exp, note: note || "",
+    purchase: p, shelf: life, expiry: exp, note: note || "", photo: photo || "",
   });
   save();
 }
@@ -611,8 +585,6 @@ function renderSteward() {
     if (expired.length) lines.push({ ic:"🔴", html:`<b>${expired.map(p=>p.it.name).join(", ")}</b> ${expired.length>1?"have":"has"} expired — toss ${expired.length>1?"them":"it"} to keep the fridge clean.` });
     urgent.slice(0,3).forEach(p => lines.push({ ic:"🟠", html:`<b>${p.it.name}</b> ${p.st.days===0?"should be eaten today":"expires tomorrow"}.` }));
     if (soon.length) lines.push({ ic:"🟡", html:`<b>${soon.map(p=>p.it.name).slice(0,3).join(", ")}</b> ${soon.length===1?"is":"are"} best used within 3 days.` });
-    const rec = bestRecipes()[0];
-    if (rec && rec.matched >= rec.need.length) lines.push({ ic:"🍳", html:`You have everything for <b>${rec.name}</b> — a great way to use what's fresh.` });
     if (!expired.length && !urgent.length && !soon.length) lines.push({ ic:"✅", html:`Nothing at risk today. Your fridge is in great shape — nice work.` });
   }
 
@@ -634,10 +606,15 @@ function renderSteward() {
     </div>`;
 }
 
+function itemEmojiHtml(it) {
+  if (it.photo) return `<div class="item-emoji" style="background-image:url('${it.photo}')"></div>`;
+  return `<div class="item-emoji">${emojiFor(it)}</div>`;
+}
+
 function itemRowHtml(it, st) {
   return `
     <div class="item">
-      <div class="item-emoji">${emojiFor(it)}</div>
+      ${itemEmojiHtml(it)}
       <div class="item-main">
         <div class="item-name">${escapeHtml(it.name)} <span class="badge ${st.key}">${st.label}</span></div>
         <div class="item-meta">${it.quantity}${it.unit?" "+escapeHtml(it.unit):""} · ${st.key==="expired"?"Expired "+whenText(st.days):"Expires "+whenText(st.days)}${it.category?" · "+it.category:""}</div>
@@ -684,71 +661,14 @@ function renderFridge() {
 }
 window.setFilter = k => { fridgeFilter = k; renderFridge(); };
 
-function haveNames() { return new Set(store.items.map(i => i.name)); }
-function urgentNames() {
-  return new Set(store.items.filter(i => ["urgent","soon","expired"].includes(statusOf(i).key)).map(i=>i.name));
-}
-
-function bestRecipes() {
-  const have = haveNames();
-  const urg = urgentNames();
-  return RECIPES.map(r => {
-    const matched = r.need.filter(n => have.has(n)).length;
-    const optMatched = r.opt.filter(n => have.has(n)).length;
-    const urgentUsed = [...r.need, ...r.opt].filter(n => urg.has(n) && have.has(n)).length;
-    const score = matched*10 + optMatched*2 + urgentUsed*6;
-    const pct = Math.round(((matched + optMatched) / (r.need.length + r.opt.length)) * 100);
-    return { ...r, matched, optMatched, urgentUsed, score, pct };
-  })
-  .filter(r => r.matched > 0)
-  .sort((a,b) => b.score - a.score);
-}
-
-function renderRecipes() {
-  const recs = bestRecipes();
-  const box = $("#recipeList");
-  if (!store.items.length) {
-    box.innerHTML = `<div class="empty"><div class="big">🍳</div><p>Add ingredients and I'll suggest what to cook.</p></div>`;
-    return;
-  }
-  if (!recs.length) {
-    box.innerHTML = `<div class="empty"><div class="big">🛒</div><p>No matches yet — a few staples like eggs, rice or veg unlock recipes.</p></div>`;
-    return;
-  }
-  const have = haveNames();
-  const urg = urgentNames();
-  box.innerHTML = recs.slice(0,6).map(r => {
-    const all = [...r.need, ...r.opt];
-    const chips = all.map(n => {
-      const has = have.has(n);
-      const isUrg = has && urg.has(n);
-      const cls = has ? (isUrg ? "chip have urgent" : "chip have") : "chip missing";
-      return `<span class="${cls}">${has?"✓ ":""}${escapeHtml(n)}</span>`;
-    }).join("");
-    const complete = r.matched >= r.need.length;
-    return `
-      <div class="card recipe" style="margin-bottom:12px">
-        <div class="recipe-top">
-          <div class="recipe-emoji">${r.emoji}</div>
-          <div style="flex:1">
-            <h3>${escapeHtml(r.name)}</h3>
-            <div class="match">${complete ? "✅ You can make this now" : `Have ${r.matched}/${r.need.length} core ingredients`}${r.urgentUsed?` · uses ${r.urgentUsed} expiring soon`:""}</div>
-          </div>
-        </div>
-        <div class="match-bar"><i style="width:${r.pct}%"></i></div>
-        <div class="chips">${chips}</div>
-      </div>`;
-  }).join("");
-}
-
 function renderDash() {
   const s = metrics();
   $("#dashStats").innerHTML = `
     ${stat(s.total, "Items in fridge")}
     ${stat(s.today + s.tomorrow, "Expiring ≤ 1 day")}
-    ${stat(s.saved, "Items rescued", true)}
+    ${stat(s.saved, "Food saved", true)}
     ${stat(cur()+" "+s.money, "Money saved", true)}
-    ${stat(s.wasted, "Items wasted")}
+    ${stat(s.wasted, "Waste this week")}
     ${stat(s.rescueRate+"%", "Rescue rate", true)}
   `;
 
@@ -789,15 +709,33 @@ window.quickAdd = n => {
   refresh();
 };
 
-/* Photo "recognition" — real via OpenAI if key set, else demo */
+/* ---------- Image helpers ---------- */
+function downscale(file, max) {
+  return new Promise(res => {
+    const img = new Image(); const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const scale = Math.min(1, max / Math.max(img.width, img.height));
+      const w = Math.round(img.width*scale), h = Math.round(img.height*scale);
+      const c = document.createElement("canvas"); c.width = w; c.height = h;
+      c.getContext("2d").drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      try { res(c.toDataURL("image/jpeg", 0.7)); } catch(e) { res(null); }
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); res(null); };
+    img.src = url;
+  });
+}
+function apiReady() { return store.settings.key && location.protocol === "https:"; }
+
+/* ---------- Grocery photo recognition ---------- */
 $("#photoInput").addEventListener("change", async e => {
-  const file = e.target.files[0];
+  const file = e.target.files[0]; e.target.value = "";
   if (!file) return;
-  const key = store.settings.key;
-  if (key && location.protocol === "https:") {
+  if (apiReady()) {
     toast("Analysing photo…");
     try {
-      const items = await recognizeWithOpenAI(file, key);
+      const b64 = await downscale(file, 768);
+      const items = await recognizeWithOpenAI(b64, store.settings.key);
       showRecognition(items, true);
     } catch (err) {
       showRecognition(demoRecognition(), false, "Couldn't reach the vision model — showing a demo result.");
@@ -805,7 +743,6 @@ $("#photoInput").addEventListener("change", async e => {
   } else {
     showRecognition(demoRecognition(), false);
   }
-  e.target.value = "";
 });
 
 function demoRecognition() {
@@ -816,8 +753,7 @@ function demoRecognition() {
   return picked;
 }
 
-async function recognizeWithOpenAI(file, key) {
-  const b64 = await toBase64(file);
+async function recognizeWithOpenAI(dataUri, key) {
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: { "Content-Type":"application/json", "Authorization":"Bearer "+key },
@@ -827,7 +763,7 @@ async function recognizeWithOpenAI(file, key) {
         role: "user",
         content: [
           { type: "text", text: "List the distinct food items visible in this fridge/grocery photo. Reply ONLY with a comma-separated list of item names, no quantities, no extra words." },
-          { type: "image_url", image_url: { url: b64 } },
+          { type: "image_url", image_url: { url: dataUri } },
         ],
       }],
       max_tokens: 120,
@@ -837,9 +773,6 @@ async function recognizeWithOpenAI(file, key) {
   const data = await res.json();
   const text = (data.choices?.[0]?.message?.content || "").trim();
   return text.split(/[,\n]/).map(s => s.replace(/^[-•\d.\s]+/,"").trim()).filter(Boolean).slice(0,8);
-}
-function toBase64(file) {
-  return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(file); });
 }
 
 let recogSelection = [];
@@ -876,7 +809,95 @@ window.confirmRecog = () => {
   refresh();
 };
 
+/* ---------- OCR: read expiry / brand from a label ---------- */
+$("#labelInput").addEventListener("change", async e => {
+  const file = e.target.files[0]; e.target.value = "";
+  if (!file) return;
+  const thumb = await downscale(file, 300);
+  if (apiReady()) {
+    toast("Reading label…");
+    try {
+      const b64 = await downscale(file, 900);
+      const data = await ocrWithOpenAI(b64, store.settings.key);
+      openManualAdd(ocrToPrefill(data, thumb, true));
+    } catch (err) {
+      openManualAdd(ocrToPrefill(demoOcr(), thumb, false, "Couldn't reach the model — demo reading shown."));
+    }
+  } else {
+    openManualAdd(ocrToPrefill(demoOcr(), thumb, false));
+  }
+});
+
+function demoOcr() {
+  const pick = a => a[Math.floor(Math.random()*a.length)];
+  const brand = pick(["Al Ain","Almarai","Nadec","Lurpak","Nestlé"]);
+  const product = pick(["Fresh Milk","Greek Yogurt","Butter","Orange Juice","Laban"]);
+  return { brand, product, expiry: iso(addDays(today(), 7+Math.floor(Math.random()*10))), manufacture: iso(addDays(today(), -(2+Math.floor(Math.random()*4)))) };
+}
+
+async function ocrWithOpenAI(dataUri, key) {
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type":"application/json", "Authorization":"Bearer "+key },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      messages: [{
+        role: "user",
+        content: [
+          { type: "text", text: "Read this food product label. Return ONLY compact JSON with keys brand, product, expiry, manufacture. Dates as YYYY-MM-DD, or null if not visible. No prose, no code fence." },
+          { type: "image_url", image_url: { url: dataUri } },
+        ],
+      }],
+      max_tokens: 160,
+    }),
+  });
+  if (!res.ok) throw new Error("api");
+  const data = await res.json();
+  let text = (data.choices?.[0]?.message?.content || "").trim().replace(/^```(json)?/i,"").replace(/```$/,"").trim();
+  try { return JSON.parse(text); } catch(e) { return {}; }
+}
+
+function normDate(d) {
+  if (!d || typeof d !== "string") return "";
+  const m = d.match(/(\d{4})-(\d{2})-(\d{2})/);
+  return m ? m[0] : "";
+}
+function guessCategory(text) {
+  const t = (text||"").toLowerCase();
+  for (const [name,d] of Object.entries(ITEM_DB)) { if (t.includes(name.toLowerCase())) return d.c; }
+  if (/milk|yogurt|laban|cheese|butter|cream|dairy/.test(t)) return "Dairy";
+  if (/juice|water|soda|drink|cola|beverage/.test(t)) return "Beverages";
+  if (/chicken|beef|lamb|meat|sausage/.test(t)) return "Meat";
+  if (/fish|shrimp|prawn|seafood|salmon|tuna/.test(t)) return "Seafood";
+  if (/bread|bun|bagel|bakery|croissant/.test(t)) return "Bakery";
+  if (/egg/.test(t)) return "Eggs";
+  if (/frozen/.test(t)) return "Frozen";
+  return "Other";
+}
+function ocrToPrefill(data, photo, real, notice) {
+  const brand = (data.brand||"").toString().trim();
+  const product = (data.product||"").toString().trim();
+  const name = [product].filter(Boolean).join(" ") || brand || "";
+  const expiry = normDate(data.expiry);
+  const mfg = normDate(data.manufacture);
+  const bits = [];
+  if (brand) bits.push(`brand <b>${escapeHtml(brand)}</b>`);
+  if (expiry) bits.push(`expiry <b>${expiry}</b>`);
+  if (mfg) bits.push(`made <b>${mfg}</b>`);
+  const noteText = notice || (real ? "Read from label." : "Demo label reading.");
+  return {
+    name: name || brand,
+    category: guessCategory(name + " " + brand),
+    expiry,
+    purchase: mfg || iso(today()),
+    note: brand ? "Brand: " + brand : "",
+    photo,
+    banner: `${noteText}${bits.length?" I found "+bits.join(", ")+".":""} Check and confirm.`,
+  };
+}
+
 /* ---------- Modal: manual add / leftover ---------- */
+let modalPhoto = null;
 function openModal(html) { $("#modalContent").innerHTML = html; $("#modalBg").classList.add("open"); }
 function closeModal() { $("#modalBg").classList.remove("open"); }
 $("#modalBg").addEventListener("click", e => { if (e.target === $("#modalBg")) closeModal(); });
@@ -884,25 +905,34 @@ $("#modalBg").addEventListener("click", e => { if (e.target === $("#modalBg")) c
 function catOptions(sel) {
   return Object.keys(CATEGORIES).map(c => `<option ${c===sel?"selected":""}>${c}</option>`).join("");
 }
-window.openManualAdd = () => {
+window.openManualAdd = (prefill) => {
+  prefill = prefill || {};
+  modalPhoto = prefill.photo || null;
   openModal(`
     <h2>Add item</h2>
-    <div class="field"><label>Name</label><input id="mName" placeholder="e.g. Strawberries" /></div>
+    ${prefill.banner ? `<div class="prefill-note"><span>🏷️</span><span>${prefill.banner}</span></div>` : ""}
+    <div class="photo-preview" id="photoPrev" style="${modalPhoto?`background-image:url('${modalPhoto}')`:""}">${modalPhoto?"":"No photo"}</div>
+    <label class="btn block" for="itemPhoto" style="margin-bottom:14px; text-align:center">📷 ${modalPhoto?"Change":"Add"} photo</label>
+    <input type="file" id="itemPhoto" accept="image/*" class="sr" />
+    <div class="field"><label>Name</label><input id="mName" placeholder="e.g. Strawberries" value="${escapeAttr(prefill.name||"")}" /></div>
     <div class="field-2">
-      <div class="field"><label>Category</label><select id="mCat">${catOptions("Fruits")}</select></div>
+      <div class="field"><label>Category</label><select id="mCat">${catOptions(prefill.category||"Fruits")}</select></div>
       <div class="field"><label>Quantity</label><input id="mQty" type="number" min="1" value="1" /></div>
     </div>
     <div class="field-2">
-      <div class="field"><label>Purchase date</label><input id="mBuy" type="date" value="${iso(today())}" /></div>
+      <div class="field"><label>Purchase date</label><input id="mBuy" type="date" value="${prefill.purchase||iso(today())}" /></div>
       <div class="field"><label>Shelf life (days)</label><input id="mShelf" type="number" min="1" placeholder="auto" /></div>
     </div>
-    <div class="field"><label>Expiry date <span class="muted">(optional — else auto)</span></label><input id="mExp" type="date" /></div>
+    <div class="field"><label>Expiry date <span class="muted">(optional — else auto)</span></label><input id="mExp" type="date" value="${prefill.expiry||""}" /></div>
     <button class="btn primary block" onclick="submitManual()">Add to fridge</button>
   `);
-  $("#mCat").addEventListener("change", () => {
-    $("#mShelf").placeholder = "auto (" + CATEGORIES[$("#mCat").value].shelf + ")";
+  $("#itemPhoto").addEventListener("change", async ev => {
+    const f = ev.target.files[0]; if (!f) return;
+    modalPhoto = await downscale(f, 300);
+    const p = $("#photoPrev"); p.style.backgroundImage = `url('${modalPhoto}')`; p.textContent = "";
   });
-  $("#mCat").dispatchEvent(new Event("change"));
+  const shelfHint = () => { $("#mShelf").placeholder = "auto (" + CATEGORIES[$("#mCat").value].shelf + ")"; };
+  $("#mCat").addEventListener("change", shelfHint); shelfHint();
 };
 window.submitManual = () => {
   const name = $("#mName").value.trim();
@@ -913,11 +943,14 @@ window.submitManual = () => {
     purchase: $("#mBuy").value || iso(today()),
     shelf: parseInt($("#mShelf").value) || 0,
     expiry: $("#mExp").value || "",
+    photo: modalPhoto || "",
   });
+  modalPhoto = null;
   closeModal(); toast(`Added ${name} 🧊`); refresh();
 };
 
 window.openLeftover = () => {
+  modalPhoto = null;
   openModal(`
     <h2>Log a leftover</h2>
     <p class="muted" style="font-size:13px; margin:-6px 0 14px">I'll set a safe 3-day window (adjust if you like).</p>
@@ -941,7 +974,7 @@ window.onFinish = id => { const it = store.items.find(x=>x.id===id); finishItem(
 window.onRemove = id => { removeItem(id); toast("Removed"); refresh(); };
 
 /* ---------- Navigation ---------- */
-const VIEWS = ["home","fridge","scan","recipes","dash","settings"];
+const VIEWS = ["home","fridge","scan","dash","settings"];
 let current = "home";
 function go(view) {
   current = view;
@@ -954,8 +987,8 @@ function renderView(v) {
   if (v==="home") renderHome();
   else if (v==="fridge") renderFridge();
   else if (v==="scan") renderScan();
-  else if (v==="recipes") renderRecipes();
   else if (v==="dash") renderDash();
+  else if (v==="settings") loadSettingsForm();
 }
 document.querySelectorAll(".nav [data-nav]").forEach(b => b.addEventListener("click", () => go(b.dataset.nav)));
 
@@ -990,7 +1023,7 @@ function seed() {
   const mk = (name, category, dExp, dBuy, qty, unit) => {
     const buy = iso(addDays(today(), -(dBuy||1)));
     store.items.push({ id:uid(), name, category, quantity:qty||1, unit:unit||"",
-      purchase:buy, shelf:(CATEGORIES[category]||CATEGORIES.Other).shelf, expiry:iso(addDays(today(), dExp)), note:"" });
+      purchase:buy, shelf:(CATEGORIES[category]||CATEGORIES.Other).shelf, expiry:iso(addDays(today(), dExp)), note:"", photo:"" });
   };
   mk("Spinach","Vegetables",0,3,1,"bag");
   mk("Milk","Dairy",1,4,1,"L");
@@ -1006,7 +1039,6 @@ function seed() {
   mk("Cheese","Dairy",8,6,1,"block");
   mk("Lettuce","Vegetables",2,2,1);
   mk("Apples","Fruits",9,4,6);
-  // a little history
   store.history = [
     { id:uid(), name:"Grapes", category:"Fruits", quantity:1, date:iso(addDays(today(),-1)), wasted:false, value:7 },
     { id:uid(), name:"Leftover Pasta", category:"Leftovers", quantity:2, date:iso(addDays(today(),-2)), wasted:false, value:15 },
@@ -1022,6 +1054,7 @@ function toast(msg) {
   clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove("show"), 1900);
 }
 function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
+function escapeAttr(s) { return escapeHtml(s); }
 function titleCase(s) { return s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()); }
 
 /* ---------- Boot ---------- */

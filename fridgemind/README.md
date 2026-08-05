@@ -22,6 +22,7 @@ Scoped exactly to the PRD's §6 "MVP Features":
 
 | Phase 1 feature | Status |
 |---|---|
+| **Landing page + accounts** | ✅ Marketing landing → **sign up / log in** with email + password → gated app, with per-user fridge data and log out |
 | **Smart food inventory** | ✅ Name, category, quantity/unit, **photo**, purchase date, shelf life, expiry, status |
 | **Food status engine** | ✅ Every item auto-classified **Fresh / Use soon / Urgent / Expired** from its expiry date |
 | **AI image recognition** | ✅ *Scan groceries* → recognises several items from one photo → confirm & add |
@@ -32,6 +33,15 @@ Scoped exactly to the PRD's §6 "MVP Features":
 | **Dashboard** | ✅ Items in fridge, expiring ≤ 1 day, food saved, money saved, waste, rescue rate, fridge-health breakdown, recent history |
 
 **UI:** 🏠 Home · 🧊 Fridge · ＋ Scan · 📊 Stats · ⚙️ Settings.
+
+### A note on authentication
+
+Accounts are **browser-local** for this prototype: each user is stored in this
+browser with a per-user salt and a SHA-256 password hash (no plaintext), and
+each account gets its own isolated fridge. This stands in for the PRD's
+**Supabase Auth** — swapping to real auth later is a drop-in replacement of the
+`signup` / `login` functions. There's also an **"Explore the demo"** shortcut
+that opens a guest account with no sign-up.
 
 ### Real AI vision & OCR (optional)
 

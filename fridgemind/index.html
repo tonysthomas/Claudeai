@@ -269,13 +269,151 @@
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+  /* ---------- Auth gate: landing + login ---------- */
+  .gate { min-height: 100dvh; background: var(--bg); }
+  .gate-view { display: none; animation: fade .3s ease; }
+  .gate-view.active { display: block; }
+
+  .hero {
+    background: linear-gradient(165deg, var(--brand), var(--brand-ink));
+    color: #fff; padding: 52px 22px 44px; text-align: center;
+  }
+  .hero-logo {
+    width: 62px; height: 62px; border-radius: 18px; margin: 0 auto 16px;
+    background: rgba(255,255,255,.16); display: grid; place-items: center; font-size: 32px;
+  }
+  .hero h1 { font-size: 30px; letter-spacing: -.6px; text-wrap: balance; max-width: 12ch; margin: 0 auto; }
+  .hero .tag { font-size: 15px; opacity: .92; margin-top: 10px; text-wrap: balance; }
+  .hero .cta { display: flex; flex-direction: column; gap: 10px; max-width: 320px; margin: 26px auto 0; }
+  .btn.onteal { background: #fff; color: var(--brand-ink); border: none; }
+  .btn.outline { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.55); }
+
+  .gate-inner { max-width: 540px; margin: 0 auto; padding: 0 16px 44px; }
+  .peek { margin-top: -28px; position: relative; z-index: 2; }
+  .features { display: grid; gap: 14px; margin-top: 26px; }
+  .feature { display: flex; gap: 13px; align-items: flex-start; }
+  .feature .fe {
+    font-size: 20px; width: 42px; height: 42px; flex: none; border-radius: 12px;
+    background: var(--brand-soft); display: grid; place-items: center;
+  }
+  .feature h3 { font-size: 15px; }
+  .feature p { margin: 2px 0 0; font-size: 13.5px; color: var(--text-dim); }
+  .gate-foot { text-align: center; color: var(--text-dim); font-size: 12px; margin-top: 30px; }
+
+  .auth-wrap {
+    min-height: 100dvh; display: grid; place-items: center; padding: 28px 16px;
+    background: linear-gradient(180deg, var(--brand-soft), var(--bg) 55%);
+  }
+  .auth-card { width: 100%; max-width: 390px; }
+  .auth-head { text-align: center; margin-bottom: 18px; }
+  .auth-head .hero-logo { background: var(--brand); box-shadow: 0 8px 20px rgba(15,118,110,.35); }
+  .auth-head h2 { font-size: 21px; }
+  .auth-head p { margin: 5px 0 0; color: var(--text-dim); font-size: 13.5px; }
+  .tabs { display: flex; background: var(--surface-2); border-radius: 12px; padding: 4px; gap: 4px; margin-bottom: 16px; }
+  .tab { flex: 1; padding: 9px; border: none; border-radius: 9px; background: none; font-weight: 650; font-size: 14px; color: var(--text-dim); }
+  .tab.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+  .auth-error { background: #fde4e4; color: #b91c1c; border-radius: 10px; padding: 10px 12px; font-size: 13px; margin-bottom: 12px; }
+  @media (prefers-color-scheme: dark) { .auth-error { background: #3a1717; color: #fca5a5; } }
+  :root[data-theme="dark"] .auth-error { background: #3a1717; color: #fca5a5; }
+  :root[data-theme="light"] .auth-error { background: #fde4e4; color: #b91c1c; }
+  .auth-alt { text-align: center; margin-top: 14px; font-size: 13px; color: var(--text-dim); }
+  .link-btn { background: none; border: none; color: var(--brand); font-weight: 650; font-size: 13px; padding: 4px; }
+  .hidden { display: none !important; }
+
   .muted { color: var(--text-dim); }
   .center { text-align: center; }
   .sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
 </style>
 </head>
 <body>
-<div class="app">
+
+<!-- ============ AUTH GATE ============ -->
+<div class="gate" id="gate">
+
+  <!-- Landing -->
+  <section class="gate-view active" id="landing">
+    <div class="hero">
+      <div class="hero-logo">🧊</div>
+      <h1>Your AI employee for zero food waste</h1>
+      <div class="tag">FridgeMind watches your fridge, tells you what to eat first, and helps your household stop throwing money in the bin.</div>
+      <div class="cta">
+        <button class="btn onteal" id="ctaSignup">Create free account</button>
+        <button class="btn outline" id="ctaLogin">Log in</button>
+      </div>
+    </div>
+
+    <div class="gate-inner">
+      <div class="card steward peek">
+        <div class="steward-head">
+          <div class="steward-avatar">👨‍🍳</div>
+          <div>
+            <div class="steward-hello">Good morning, Tony</div>
+            <div class="steward-role">FridgeMind · your Food Steward</div>
+          </div>
+        </div>
+        <div class="steward-body">
+          <div class="brief-line"><span class="brief-ico">🟠</span><span class="brief-text"><b>Spinach</b> should be eaten today.</span></div>
+          <div class="brief-line"><span class="brief-ico">🟠</span><span class="brief-text"><b>Milk</b> expires tomorrow.</span></div>
+          <div class="brief-line"><span class="brief-ico">🟡</span><span class="brief-text"><b>Yogurt, Bread</b> are best used within 3 days.</span></div>
+          <div class="savings-banner">💰 Eating today's priorities saves ~AED 42 this week.</div>
+        </div>
+      </div>
+
+      <div class="features">
+        <div class="feature"><div class="fe">📷</div><div><h3>Scan groceries</h3><p>Snap a photo and FridgeMind logs each item for you.</p></div></div>
+        <div class="feature"><div class="fe">🏷️</div><div><h3>Read the label</h3><p>OCR pulls the expiry date, brand and pack date off the packaging.</p></div></div>
+        <div class="feature"><div class="fe">⏰</div><div><h3>Never miss an expiry</h3><p>Every item is graded Fresh → Urgent, with a daily eat-first brief.</p></div></div>
+        <div class="feature"><div class="fe">📊</div><div><h3>See what you save</h3><p>Track food rescued, money saved and waste avoided over time.</p></div></div>
+      </div>
+
+      <p class="gate-foot">Phase 1 prototype · your account and fridge stay in this browser.</p>
+    </div>
+  </section>
+
+  <!-- Login / Sign up -->
+  <section class="gate-view" id="auth">
+    <div class="auth-wrap">
+      <div class="auth-card">
+        <div class="auth-head">
+          <div class="hero-logo">🧊</div>
+          <h2 id="authTitle">Welcome back</h2>
+          <p id="authSub">Log in to open your fridge.</p>
+        </div>
+        <div class="card">
+          <div class="tabs">
+            <button class="tab active" id="tabLogin">Log in</button>
+            <button class="tab" id="tabSignup">Create account</button>
+          </div>
+          <div class="auth-error hidden" id="authError"></div>
+          <div class="field" id="nameField" style="display:none">
+            <label>Your name</label>
+            <input id="authName" autocomplete="name" placeholder="Tony" />
+          </div>
+          <div class="field">
+            <label>Email</label>
+            <input id="authEmail" type="email" autocomplete="email" placeholder="you@email.com" />
+          </div>
+          <div class="field">
+            <label>Password</label>
+            <input id="authPass" type="password" autocomplete="current-password" placeholder="••••••••" />
+          </div>
+          <button class="btn primary block" id="authSubmit">Log in</button>
+          <div class="auth-alt">
+            <span id="altText">New here?</span>
+            <button class="link-btn" id="altToggle">Create an account</button>
+          </div>
+        </div>
+        <div class="auth-alt">
+          <button class="link-btn" id="demoBtn">Explore the demo instead →</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- ============ APP (after login) ============ -->
+<div class="app" id="appShell" hidden>
   <!-- Top bar -->
   <header class="topbar">
     <div class="brand">
@@ -390,6 +528,12 @@
         <button class="btn ghost" id="resetBtn" style="color:var(--urgent)">Clear all</button>
       </div>
     </div>
+
+    <div class="section-title">Account</div>
+    <div class="card">
+      <div id="accountInfo" class="muted" style="font-size:13.5px; margin-bottom:12px"></div>
+      <button class="btn block" id="logoutBtn">Log out</button>
+    </div>
     <p class="center muted" style="margin-top:18px; font-size:12px">FridgeMind AI · Phase 1 (MVP) · data stored locally in your browser</p>
   </section>
 
@@ -456,23 +600,75 @@ const ITEM_DB = {
   Juice:{e:"🧃",c:"Beverages"}, Water:{e:"💧",c:"Beverages"},
 };
 
-/* ---------- Storage ---------- */
-const KEY = "fridgemind.v1";
-let store = load();
+/* ---------- Storage (multi-user) ---------- */
+const KEY = "fridgemind.v2";
+let root = loadRoot();   // { users:[], session:userId|null, data:{ [userId]: userData } }
+let store = null;        // the signed-in user's { items, history, settings, seeded }
 
-function load() {
+function loadRoot() {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) { const r = JSON.parse(raw); r.users ||= []; r.data ||= {}; return r; }
   } catch (e) {}
-  return {
-    items: [],
-    history: [],
-    settings: { name: "there", currency: "AED", itemValue: 9, key: "" },
-    seeded: false,
-  };
+  return { users: [], session: null, data: {} };
 }
-function save() { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {} }
+function saveRoot() { try { localStorage.setItem(KEY, JSON.stringify(root)); } catch (e) {} }
+const save = saveRoot;   // app code mutates `store` (a reference into root.data) then calls save()
+
+function freshUserData(name) {
+  const first = (name || "there").split(/\s+/)[0] || "there";
+  const d = { items: [], history: [], settings: { name: first, currency: "AED", itemValue: 9, key: "" }, seeded: false };
+  return d;
+}
+
+/* ---------- Auth (prototype: browser-local, hashed passwords) ---------- */
+async function sha256(text) {
+  if (window.crypto && window.crypto.subtle) {
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+    return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+  }
+  // fallback for non-secure contexts (file://) — prototype only
+  let h = 5381; for (let i = 0; i < text.length; i++) { h = ((h << 5) + h) + text.charCodeAt(i); h |= 0; }
+  return "fb" + (h >>> 0).toString(16);
+}
+function randSalt() {
+  const a = new Uint8Array(8);
+  if (window.crypto && crypto.getRandomValues) crypto.getRandomValues(a);
+  else for (let i = 0; i < 8; i++) a[i] = Math.floor(Math.random() * 256);
+  return [...a].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+function validEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
+
+async function signup(name, email, pw) {
+  name = (name || "").trim(); email = (email || "").trim().toLowerCase();
+  if (!name) throw new Error("Please enter your name.");
+  if (!validEmail(email)) throw new Error("Enter a valid email address.");
+  if ((pw || "").length < 6) throw new Error("Password must be at least 6 characters.");
+  if (root.users.some(u => u.email === email)) throw new Error("An account with this email already exists — try logging in.");
+  const salt = randSalt(); const hash = await sha256(salt + pw); const id = uid();
+  root.users.push({ id, name, email, salt, hash });
+  root.data[id] = freshUserData(name);
+  root.session = id; saveRoot();
+  return id;
+}
+async function login(email, pw) {
+  email = (email || "").trim().toLowerCase();
+  const u = root.users.find(x => x.email === email);
+  if (!u) throw new Error("No account found for that email.");
+  const hash = await sha256(u.salt + pw);
+  if (hash !== u.hash) throw new Error("Incorrect password — please try again.");
+  root.session = u.id; saveRoot();
+  return u.id;
+}
+async function demoLogin() {
+  const email = "demo@fridgemind.ai";
+  let u = root.users.find(x => x.email === email);
+  if (!u) { await signup("Guest", email, "demo1234"); }
+  else { root.session = u.id; saveRoot(); }
+  enterApp();
+}
+function logout() { root.session = null; saveRoot(); store = null; showGate("landing"); toast("Logged out"); }
+function currentUser() { return root.users.find(u => u.id === root.session) || null; }
 
 /* ---------- Date helpers ---------- */
 const DAY = 86400000;
@@ -1010,11 +1206,16 @@ $("#seedBtn").addEventListener("click", () => { seed(); toast("Demo fridge loade
 $("#resetBtn").addEventListener("click", () => {
   if (confirm("Clear all fridge items and history?")) { store.items=[]; store.history=[]; store.seeded=false; save(); toast("Cleared"); go("home"); }
 });
+$("#logoutBtn").addEventListener("click", logout);
 function loadSettingsForm() {
   $("#setName").value = store.settings.name === "there" ? "" : store.settings.name;
   $("#setCurrency").value = store.settings.currency;
   $("#setItemValue").value = store.settings.itemValue;
   $("#setKey").value = store.settings.key || "";
+  const u = currentUser();
+  $("#accountInfo").innerHTML = u
+    ? `Signed in as <b>${escapeHtml(u.name)}</b><br>${escapeHtml(u.email)}`
+    : "";
 }
 
 /* ---------- Seed demo data ---------- */
@@ -1057,16 +1258,84 @@ function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;
 function escapeAttr(s) { return escapeHtml(s); }
 function titleCase(s) { return s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()); }
 
+/* ---------- Gate <-> App ---------- */
+function setGateView(v) {
+  document.querySelectorAll(".gate-view").forEach(s => s.classList.toggle("active", s.id === v));
+  window.scrollTo(0, 0);
+}
+function showGate(v) {
+  $("#appShell").hidden = true;
+  $("#gate").hidden = false;
+  setGateView(v || "landing");
+}
+function enterApp() {
+  store = root.data[root.session];
+  if (!store) { store = root.data[root.session] = freshUserData(currentUser()?.name); }
+  if (!store.seeded && store.items.length === 0) seed(); // new users start with a demo fridge
+  $("#gate").hidden = true;
+  $("#appShell").hidden = false;
+  setDateChip();
+  loadSettingsForm();
+  go("home");
+}
+
+/* ---------- Auth UI wiring ---------- */
+let authMode = "login";
+function setAuthMode(mode) {
+  authMode = mode;
+  const signup = mode === "signup";
+  $("#tabLogin").classList.toggle("active", !signup);
+  $("#tabSignup").classList.toggle("active", signup);
+  $("#nameField").style.display = signup ? "block" : "none";
+  $("#authTitle").textContent = signup ? "Create your account" : "Welcome back";
+  $("#authSub").textContent = signup ? "Start managing your fridge in seconds." : "Log in to open your fridge.";
+  $("#authSubmit").textContent = signup ? "Create account" : "Log in";
+  $("#authPass").autocomplete = signup ? "new-password" : "current-password";
+  $("#altText").textContent = signup ? "Already have an account?" : "New here?";
+  $("#altToggle").textContent = signup ? "Log in" : "Create an account";
+  authError("");
+}
+function authError(msg) {
+  const el = $("#authError");
+  if (msg) { el.textContent = msg; el.classList.remove("hidden"); }
+  else { el.textContent = ""; el.classList.add("hidden"); }
+}
+function openAuth(mode) { showGate("auth"); setAuthMode(mode || "login"); setTimeout(() => $("#authEmail").focus(), 60); }
+
+$("#ctaSignup").addEventListener("click", () => openAuth("signup"));
+$("#ctaLogin").addEventListener("click", () => openAuth("login"));
+$("#tabLogin").addEventListener("click", () => setAuthMode("login"));
+$("#tabSignup").addEventListener("click", () => setAuthMode("signup"));
+$("#altToggle").addEventListener("click", () => setAuthMode(authMode === "login" ? "signup" : "login"));
+$("#demoBtn").addEventListener("click", () => demoLogin().catch(err => authError(err.message)));
+
+async function submitAuth() {
+  const btn = $("#authSubmit");
+  const email = $("#authEmail").value, pass = $("#authPass").value, name = $("#authName").value;
+  authError(""); btn.disabled = true; const label = btn.textContent; btn.textContent = "…";
+  try {
+    if (authMode === "signup") { await signup(name, email, pass); toast(`Welcome, ${name.trim().split(/\s+/)[0]}! 👋`); }
+    else { await login(email, pass); toast("Logged in ✅"); }
+    $("#authPass").value = "";
+    enterApp();
+  } catch (err) {
+    authError(err.message || "Something went wrong.");
+  } finally {
+    btn.disabled = false; btn.textContent = label;
+  }
+}
+$("#authSubmit").addEventListener("click", submitAuth);
+$("#authPass").addEventListener("keydown", e => { if (e.key === "Enter") submitAuth(); });
+$("#authEmail").addEventListener("keydown", e => { if (e.key === "Enter") submitAuth(); });
+
 /* ---------- Boot ---------- */
 function setDateChip() {
   const d = new Date();
   $("#dateChip").textContent = "📅 " + d.toLocaleDateString(undefined, { weekday:"short", month:"short", day:"numeric" });
 }
 function boot() {
-  if (!store.seeded && store.items.length === 0) seed(); // friendly first-run
-  setDateChip();
-  loadSettingsForm();
-  go("home");
+  if (root.session && root.data[root.session]) enterApp();
+  else showGate("landing");
 }
 boot();
 </script>

@@ -188,6 +188,23 @@ in the MVP, demo-labeled until live inventory).
 
 ## 6. Product data source & catalogue governance
 
+**Product-data strategy (summary).**
+
+1. During prototyping, use **synthetic** Skechers-style sample data and
+   placeholder images.
+2. The public Skechers website may be used **only as a research reference**
+   unless authorization is obtained.
+3. Do **not** scrape, crawl, bulk-download, or redistribute website content.
+4. Do **not** present the prototype as an official Skechers product.
+5. The database is designed for a **future approved-catalogue upload**.
+6. The product model carries `source`, `source_url`, `region`, `currency`,
+   `approval_status`, and `imported_at`.
+7. The future catalogue-import workflow supports **CSV, Excel, JSON, or an
+   authorized API**.
+8. That import design includes **validation, duplicate detection, preview, error
+   reporting, approval, and version history**.
+9. **No scraping or automated website-collection is implemented in any phase.**
+
 **Prototype data policy.** The public Skechers website is a **reference only**
 (categories, naming, features, technologies, relationships). No scraping,
 crawling, bulk-downloading, copying, or redistribution without explicit

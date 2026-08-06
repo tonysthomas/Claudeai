@@ -45,12 +45,15 @@ Business goals it serves:
 
 ### Product data source policy
 
-- The public Skechers website may be used **only as a reference** for
+- The public Skechers website may be used **only as a research reference** for
   understanding categories, naming conventions, features, technologies, and
-  possible product relationships.
+  possible product relationships — unless explicit authorization is obtained.
 - **Do not** scrape, crawl, bulk-download, copy, or redistribute Skechers
   website content without explicit authorization. Website data is **never** the
   production database.
+- **Do not implement** scraping, crawling, or any automated website-collection
+  tooling — not in the MVP and not in any later phase. Populate data only from
+  synthetic samples now, and later from an authorized approved-catalogue upload.
 - Until an approved catalogue exists:
   - Use **synthetic** sample product data only.
   - Use placeholder images or approved development assets only.

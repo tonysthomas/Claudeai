@@ -90,6 +90,10 @@ scraping, crawling, bulk-download, copying, or redistribution.
 **Consequences:** Safe to demo; a `VITE_DEMO_MODE` flag drives the labeling.
 **Alternatives:** Using website data directly (rejected — not authorized, not a
 production source).
+**Explicit non-goal:** No scraping, crawling, or automated website-collection
+tooling is implemented in any phase. Data comes only from synthetic samples now
+and, later, from an authorized approved-catalogue upload. The website is a
+human research reference only.
 
 ### ADR-008 — Staged, versioned, approval-gated import pipeline
 **Decision:** Design the production data model for an upload path via CSV, Excel,

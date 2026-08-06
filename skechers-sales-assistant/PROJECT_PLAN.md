@@ -74,6 +74,22 @@ Each phase ends with a review and an explicit approval gate before the next.
 | **7** | AI assist (grounded) | LLM re-ranking / phrasing constrained to approved catalog data; guardrails & evals | Never introduces new facts |
 | **8** | Real data & scanning | Approved catalog import pipeline, camera barcode scanning | — |
 | **9** | Integrations & analytics | POS/inventory & live availability, manager dashboards, A/B testing, i18n, offline sync | — |
+| **10** | Security hardening & deployment | Production RLS/permission review (see checklist below), secrets & env hardening, deploy pipeline | Final phase before launch |
+
+### Pre-production security review (required before launch — Phase 10)
+
+The demo's anonymous read policy is acceptable **only** because it exposes
+synthetic products. Before production, the security & deployment phase must
+review and restrict:
+
+- [ ] **Anonymous product reads** — scope/limit what unauthenticated clients see.
+- [ ] **Catalogue import permissions** — restrict who/what can import.
+- [ ] **Product approval permissions** — restrict who can approve records.
+- [ ] **Recommendation-relationship changes** — restrict edge create/update.
+- [ ] **Inventory updates** — restrict who can write inventory.
+- [ ] **Recommendation-event writes** — narrow, validated insert policy only.
+
+(Not a blocker for Phase 3; tracked here so it is not lost.)
 
 ### Data-source roadmap (future, permission-gated)
 

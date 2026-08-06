@@ -147,6 +147,24 @@ ADR-007 guardrails stand.
 **Alternatives:** Enabling website/API access now (rejected — premature, not yet
 authorized, and out of the current phase scope).
 
+### ADR-011 — Permissive demo RLS now; harden before production
+**Decision:** In the demo, catalogue/reference tables (`products`,
+`product_sources`, `product_relationships`, `customer_needs`, `stores`,
+`inventory`) allow anonymous `SELECT`; `recommendation_approvals` and
+`recommendation_events` are default-deny (writes via privileged roles during
+seeding/demo). This is acceptable **only** because the data is synthetic.
+**Context:** Phase 2 has no auth yet (auth is Phase 6); the future read-only
+frontend needs to read demo data.
+**Consequences:** Simple to develop against; **not** production-safe. A
+pre-production security review (Phase 10) MUST review and restrict: anonymous
+product reads, catalogue import permissions, product approval permissions,
+recommendation-relationship changes, inventory updates, and recommendation-event
+writes. Tracked in `PROJECT_PLAN.md` (Pre-production security review) and
+`CLAUDE.md` security rules.
+**Alternatives:** Locking everything down now (rejected — no auth exists yet, and
+it would block demo development); leaving it permissive into production
+(rejected — unsafe).
+
 ---
 
 ## 3. Project folder structure (proposed)

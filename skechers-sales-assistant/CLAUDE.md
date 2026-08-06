@@ -197,6 +197,13 @@ Do **not** build these until their phase is approved:
 - Validate all input (product codes, outcome enums) before use.
 - No real customer PII, ever. Outcomes are anonymous and aggregate-safe.
 - Serve only over HTTPS.
+- **Demo RLS is not production RLS.** The current anonymous read policy is
+  acceptable in the demo because it exposes only synthetic products. **Before
+  production**, the security & deployment phase MUST review and restrict:
+  anonymous product reads · catalogue import permissions · product approval
+  permissions · recommendation-relationship changes · inventory updates ·
+  recommendation-event writes. See `PROJECT_PLAN.md` (Pre-production security
+  review) and `DECISIONS.md` ADR-011.
 
 ## Database rules
 

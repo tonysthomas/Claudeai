@@ -66,9 +66,11 @@ Each phase ends with a review and an explicit approval gate before the next.
 > **Delivery log.** ✅ **1. Project foundation** → ✅ **2. Database schema &
 > relationships** → ✅ **3. Product catalogue & approved import** → ✅ **4. Mobile
 > UI, product lookup & customer needs** → ✅ **5. Rules-based recommendation
-> engine** → ✅ **6. Associate authentication & store context** → ▶ **next:
-> 7. Recommendation outcomes & associate feedback**. All AI work (grounded
-> assist, LLM rephrasing, AI re-ranking, RAG, AI Sales Coach) is later/future.
+> engine** → ✅ **6. Associate authentication & store context** → ✅ **7.
+> Recommendation outcomes & associate feedback** → ▶ **next: 9. Demo sales
+> guidance layer** (Phase 8 inventory integration is paused). All AI work
+> (grounded assist, LLM rephrasing, AI re-ranking, RAG, AI Sales Coach) is
+> later/future.
 
 This is the canonical phase roadmap (single numbering).
 
@@ -80,7 +82,7 @@ This is the canonical phase roadmap (single numbering).
 | **4** | Mobile UI, product lookup, and customer needs | ✅ complete |
 | **5** | Rules-based recommendation engine | ✅ complete |
 | **6** | Associate authentication and store context | ✅ complete |
-| **7** | Recommendation outcomes and associate feedback | ▶ **next** |
+| **7** | Recommendation outcomes and associate feedback | ✅ complete |
 | **8** | Inventory and store stock integration | ⏸ paused |
 | **9** | Demo sales guidance layer | available in demo mode |
 | **10** | Performance analytics dashboard | ⏸ paused |
@@ -659,3 +661,33 @@ associate feedback, written to `recommendation_events` under the existing
 RLS-enforced, PII-free rules (session associate + store in production, anonymous
 in DEMO_MODE). Deterministic and no AI. *(All AI work — grounded assist, LLM
 rephrasing, re-ranking, RAG, AI Sales Coach — remains later/future, Phase 11+.)*
+
+---
+
+## 15. Phase 7 status — ✅ COMPLETED (pending reviewer approval)
+
+Phase 7 (Recommendation outcomes and associate feedback) is complete. **All
+checks pass:** typecheck OK, 81 tests (6 new outcome), build OK; DB validations
+unchanged and green (core 14/14 · import 8/8 · recommendation R1–R5 · auth/RLS
+A–H).
+
+- [x] Outcome logging `logRecommendationOutcome()` writes one
+      `recommendation_events` row per outcome (`selected_product_id`,
+      `recommended_product_id`, `relationship_id`, `customer_need_id`,
+      `associate_id`, `store_id`, `action`, plus DB `created_at`). No schema
+      change — the Phase 2 CHECK already allows all 8 actions.
+- [x] `OutcomeActionBar` (🛒 Added to basket · 👍 Interested · 👎 Declined · ❌
+      Unavailable · ⏩ Not relevant) under each recommendation card, with a
+      confirmation badge, error/retry state, and re-selectable outcome; logging
+      is optimistic and non-blocking.
+- [x] RLS-safe & PII-free: associate/store from the session in production (RLS
+      enforces), anonymous in DEMO_MODE. No POS/payment hardware. No customer PII.
+- [x] Tests: buttons render, each action → correct payload, session identity vs
+      demo anonymous, confirmation renders, error handling, re-selection; Phase
+      4/5/6 acceptance flows still green. Browser demo updated.
+- [x] Docs updated (this file, README, DECISIONS ADR-019).
+- [ ] Reviewer approval before starting the next phase.
+
+**Next available active phase:** Phase 9 — Demo sales guidance layer (available in
+demo mode). Phase 8 (Inventory and store stock integration) and Phase 10
+(Performance analytics dashboard) are **paused**; AI work is Phase 11+.

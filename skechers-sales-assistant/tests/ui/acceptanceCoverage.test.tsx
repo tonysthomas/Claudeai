@@ -59,6 +59,7 @@ vi.mock('../../src/lib/customerNeeds', async (orig) => {
 vi.mock('../../src/lib/recommendations', () => ({
   getRecommendationCandidates: vi.fn(async (product: Product) => CANDIDATES[product.id] ?? []),
   logRecommendationsDisplayed: vi.fn(),
+  logRecommendationOutcome: vi.fn(async () => ({ error: null })),
 }));
 
 function renderApp() {

@@ -264,6 +264,22 @@ from the real auth user id. A hard FK (or an `on auth.users` trigger) can be
 added in a Supabase-only migration later.
 **Alternatives:** Hard FK now (breaks demo/validation).
 
+### ADR-019 — Outcome feedback: append-only events, optimistic + non-blocking (Phase 7)
+**Decision:** Each recommendation card carries an `OutcomeActionBar`. Tapping an
+outcome writes **one** `recommendation_events` row via `logRecommendationOutcome`
+(reusing the Phase 6 RLS rules — session associate/store in production, anonymous
+in DEMO_MODE). The write is **optimistic and non-blocking**: the UI reflects the
+choice and a confirmation immediately while the insert runs in the background;
+failures surface a retry. Changing the outcome logs a **new** event (events are
+append-only, immutable to associates); the latest tap is the current state.
+**Context:** Associates need fast, real-time outcome capture on the floor with no
+customer PII and no POS/payment hardware.
+**Consequences:** Simple, auditable event stream; "current outcome" is the latest
+event for a (selected, recommended) pair — analytics (a paused, later phase) can
+reduce over the stream. No update/delete needed (and none is allowed by RLS).
+**Alternatives:** Mutable per-recommendation outcome rows (needs update policy +
+conflict handling; loses history); blocking writes (slows the associate UI).
+
 ---
 
 ## 3. Project folder structure (proposed)

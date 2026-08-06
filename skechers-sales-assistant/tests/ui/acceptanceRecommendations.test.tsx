@@ -49,6 +49,7 @@ vi.mock('../../src/lib/recommendations', () => ({
     cand(prod('sock1', 'SOCK-PERF-001', 'Demo Performance Sock 1', 'socks', 12.99), 'pairs_with', 'Pairs with performance socks.', 'Moisture control keeps feet dry.'),
   ]),
   logRecommendationsDisplayed: vi.fn(),
+  logRecommendationOutcome: vi.fn(async () => ({ error: null })),
 }));
 
 function renderApp() {

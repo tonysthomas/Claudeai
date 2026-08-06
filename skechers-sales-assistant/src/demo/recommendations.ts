@@ -78,3 +78,9 @@ export async function getRecommendationCandidates(product: Product): Promise<Rec
 export async function logRecommendationsDisplayed(): Promise<void> {
   // no-op in the offline demo
 }
+
+export async function logRecommendationOutcome(): Promise<{ error: string | null }> {
+  // no-op in the offline demo — the UI still shows its confirmation state
+  await new Promise((r) => setTimeout(r, 120));
+  return { error: null };
+}

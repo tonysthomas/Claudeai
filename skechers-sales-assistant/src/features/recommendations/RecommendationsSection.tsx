@@ -38,6 +38,8 @@ export function RecommendationsSection({ product, need }: { product: Product; ne
       <RecommendationListView
         status={status}
         recommendations={query.data ?? []}
+        selected={product}
+        need={need}
         errorMessage={query.error instanceof Error ? query.error.message : undefined}
         onRetry={() => void query.refetch()}
       />

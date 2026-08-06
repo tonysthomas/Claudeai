@@ -1,8 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { AuthProvider } from '../../src/features/auth/AuthContext';
 import { RecommendationListView } from '../../src/features/recommendations/RecommendationListView';
 import type { Recommendation } from '../../src/features/recommendations/types';
+import type { CustomerNeed } from '../../src/types/db';
 import { demoProduct } from './fixtures';
+
+const need: CustomerNeed = { id: 'n1', code: 'walking', name: 'Walking', description: null, active: true };
+const view = (node: React.ReactNode) => render(<AuthProvider demoMode>{node}</AuthProvider>);
 
 const rec: Recommendation = {
   relationshipId: 'r1',
@@ -17,23 +22,23 @@ const rec: Recommendation = {
 
 describe('RecommendationListView states', () => {
   it('renders the loading state', () => {
-    render(<RecommendationListView status="loading" recommendations={[]} />);
+    view(<RecommendationListView status="loading" recommendations={[]} selected={demoProduct} need={need} />);
     expect(screen.getByText('Finding recommendations…')).toBeInTheDocument();
   });
 
   it('renders the error state', () => {
-    render(<RecommendationListView status="error" recommendations={[]} errorMessage="nope" />);
+    view(<RecommendationListView status="error" recommendations={[]} selected={demoProduct} need={need} errorMessage="nope" />);
     expect(screen.getByRole('alert')).toBeInTheDocument();
     expect(screen.getByText('nope')).toBeInTheDocument();
   });
 
   it('renders the empty state', () => {
-    render(<RecommendationListView status="success" recommendations={[]} />);
+    view(<RecommendationListView status="success" recommendations={[]} selected={demoProduct} need={need} />);
     expect(screen.getByText('No approved recommendations')).toBeInTheDocument();
   });
 
   it('renders a recommendation card with all stored fields', () => {
-    render(<RecommendationListView status="success" recommendations={[rec]} />);
+    view(<RecommendationListView status="success" recommendations={[rec]} selected={demoProduct} need={need} />);
     expect(screen.getByText('Premium upgrade')).toBeInTheDocument();
     expect(screen.getByText('Demo Walk Comfort 2')).toBeInTheDocument();
     expect(screen.getByText('SHOE-WALK-002')).toBeInTheDocument();

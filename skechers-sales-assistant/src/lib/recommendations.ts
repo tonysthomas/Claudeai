@@ -4,6 +4,7 @@
 import { supabase } from './supabase';
 import { PRODUCT_COLUMNS, type Product } from '../types/db';
 import type { Availability, RecommendationCandidate, RelationshipRow } from '../features/recommendations/types';
+import type { OutcomeAction } from '../features/outcomes/types';
 
 const REL_COLUMNS =
   'id, source_product_id, target_product_id, relationship_type, priority, reason, customer_benefit, activity_type, customer_need, region, active, approval_status';
@@ -101,4 +102,33 @@ export async function logRecommendationsDisplayed(params: {
     // eslint-disable-next-line no-console
     console.warn('[recommendations] display log failed:', error.message);
   }
+}
+
+/**
+ * Record an associate's OUTCOME for a single recommendation (Phase 7). Same
+ * RLS-safe, PII-free rules as display logging: in production the associate/store
+ * come from the session (RLS enforces they match); in DEMO_MODE they are null.
+ * Returns an error string on failure so the UI can surface a retry.
+ */
+export async function logRecommendationOutcome(params: {
+  selected: Product;
+  recommended: Product;
+  relationshipId: string | null;
+  needId: string | null;
+  associateId: string | null;
+  storeId: string | null;
+  action: OutcomeAction;
+}): Promise<{ error: string | null }> {
+  const uuidOrNull = (v: string | null) => (v && UUID_RE.test(v) ? v : null);
+  const { error } = await supabase.from('recommendation_events').insert({
+    selected_product_id: params.selected.id,
+    recommended_product_id: params.recommended.id,
+    relationship_id: uuidOrNull(params.relationshipId),
+    customer_need_id: uuidOrNull(params.needId),
+    associate_id: uuidOrNull(params.associateId),
+    store_id: uuidOrNull(params.storeId),
+    action: params.action,
+    sale_completed: params.action === 'added_to_basket',
+  });
+  return { error: error ? error.message : null };
 }

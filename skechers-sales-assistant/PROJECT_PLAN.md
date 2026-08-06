@@ -160,7 +160,7 @@ restructuring:
 | `activity_type` | text | Best-for activity (feeds `best_for_activity`) |
 | `source` | text | Origin of the record (file/integration) |
 | `source_url` | text | Reference URL for the record's origin |
-| `approval_status` | enum | `draft`/`pending_review`/`approved`/`rejected`/`archived`; gates activation |
+| `approval_status` | text | `draft`/`demo`/`pending_review`/`approved`/`rejected`/`archived`; gates activation |
 | `imported_at` | timestamptz | When the record was ingested |
 | `updated_at` | timestamptz | Last modification (auto-updated) |
 
@@ -180,8 +180,8 @@ in the MVP, demo-labeled until live inventory).
   (static field in MVP — no live inventory).
 - `outcome`: `presented`, `interested`, `added_to_basket`, `declined`,
   `unavailable`, `not_relevant`.
-- `approval_status`: `draft`, `pending_review`, `approved`, `rejected`,
-  `archived`.
+- `approval_status` (text): `draft`, `demo`, `pending_review`, `approved`,
+  `rejected`, `archived`. (`demo` marks synthetic prototype records.)
 - `import_status`: `previewed`, `validated`, `committed`, `failed`.
 
 ---

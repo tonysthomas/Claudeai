@@ -4,6 +4,7 @@ import { LoginPage } from './features/auth/LoginPage';
 import { RequireAuth } from './features/auth/RequireAuth';
 import { SearchPage } from './features/products/SearchPage';
 import { ProductPage } from './features/products/ProductPage';
+import { AnalyticsPage } from './features/analytics/AnalyticsPage';
 
 export function App() {
   return (
@@ -23,6 +24,14 @@ export function App() {
           element={
             <RequireAuth>
               <ProductPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/analytics"
+          element={
+            <RequireAuth>
+              <AnalyticsPage />
             </RequireAuth>
           }
         />

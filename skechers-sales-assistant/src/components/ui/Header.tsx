@@ -1,4 +1,5 @@
 // App header: application name, associate + store context, and sign-out.
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../features/auth/AuthContext';
 
 export function Header() {
@@ -18,6 +19,14 @@ export function Header() {
           )}
         </div>
         <div className="flex items-center gap-2">
+          {isAuthenticated && isDemo && (
+            <Link
+              to="/analytics"
+              className="rounded-lg border border-slate-300 px-2.5 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
+            >
+              Analytics
+            </Link>
+          )}
           <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold text-amber-700" title="Synthetic demo data — not official Skechers data">
             DEMO
           </span>

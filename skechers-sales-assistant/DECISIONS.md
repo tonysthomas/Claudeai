@@ -298,6 +298,31 @@ exists.
 **Alternatives:** A guidance DB table + seed (unnecessary for demo-only, adds RLS
 surface); LLM-generated guidance (explicitly out of scope — Phase 11+).
 
+### ADR-021 — Analytics dashboard aggregates a synthetic dataset in-app, DEMO_MODE only (Phase 10)
+**Decision:** The performance analytics dashboard is built from a **pure
+aggregation function** (`aggregateEvents`) over a **fixed, deterministic synthetic
+event dataset** (`SYNTHETIC_ANALYTICS_EVENTS`), not a live query over the
+`recommendation_events` table. It computes acceptance rate (interested + added to
+basket), attach rate, decline / unavailable / not-relevant rates, the full
+8-action outcome distribution, and acceptance grouped by need, category, and
+product pairing. The page is **gated to `isDemoMode`** and carries a prominent
+**DEMO — synthetic analytics** disclaimer; a non-demo build shows a
+"demo-only preview" notice instead. **No AI, no external requests, no new DB
+table/migration, no real-sales claims, no customer PII.**
+**Context:** Phase 10 asks for a management-style dashboard in demo mode. Querying
+real events would (a) require aggregation RLS/policies and management roles that
+belong to the Phase 12 security review, and (b) show near-empty data in the demo.
+A deterministic synthetic set gives a realistic, testable, offline dashboard now.
+**Consequences:** The aggregation math is unit-tested in isolation; swapping the
+synthetic source for a real (approved, RLS-governed) aggregate query later is a
+one-module change behind the same `AnalyticsSummary` shape, with no UI rework.
+Figures must never be read as real performance — they are labeled synthetic
+throughout.
+**Alternatives:** Live Supabase aggregation now (premature — needs management
+roles + reporting RLS, a Phase 12 concern); a materialized analytics table
+(unnecessary for demo-only data); charting libraries (kept to lightweight inline
+bars to preserve the self-contained single-file demo and avoid new deps).
+
 ---
 
 ## 3. Project folder structure (proposed)

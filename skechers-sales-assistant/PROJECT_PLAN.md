@@ -68,10 +68,11 @@ Each phase ends with a review and an explicit approval gate before the next.
 > UI, product lookup & customer needs** → ✅ **5. Rules-based recommendation
 > engine** → ✅ **6. Associate authentication & store context** → ✅ **7.
 > Recommendation outcomes & associate feedback** → ✅ **9. Demo sales guidance
-> layer** (demo mode only). Remaining: Phase 8 (inventory) and Phase 10
-> (analytics) are **paused**; Phase 11 (AI Sales Coach) and Phase 12 (final /
-> deployment / security) are **future**. All AI work (grounded assist, LLM
-> rephrasing, AI re-ranking, RAG, AI Sales Coach) is later/future.
+> layer** (demo mode only) → ✅ **10. Performance analytics dashboard** (demo mode
+> only). Remaining: Phase 8 (inventory) is **paused**; Phase 11 (AI Sales Coach)
+> and Phase 12 (final / deployment / security) are **future**. All AI work
+> (grounded assist, LLM rephrasing, AI re-ranking, RAG, AI Sales Coach) is
+> later/future.
 
 This is the canonical phase roadmap (single numbering).
 
@@ -86,13 +87,15 @@ This is the canonical phase roadmap (single numbering).
 | **7** | Recommendation outcomes and associate feedback | ✅ complete |
 | **8** | Inventory and store stock integration | ⏸ paused |
 | **9** | Demo sales guidance layer | ✅ complete (demo mode) |
-| **10** | Performance analytics dashboard | ⏸ paused |
+| **10** | Performance analytics dashboard | ✅ complete (demo mode) |
 | **11** | AI Sales Coach | later / future |
 | **12** | Final testing, deployment, security, and governance | future |
 
 > **AI is deferred.** Grounded AI assist, LLM-based copy rephrasing, AI
 > re-ranking, retrieval-augmented generation, and the AI Sales Coach are **later
-> / future** work (Phase 11+). Phases 1–10 contain **no AI**.
+> / future** work (Phase 11+). Phases 1–10 contain **no AI**. The Phase 10
+> analytics dashboard aggregates only synthetic demo events — no AI, no real
+> sales data, and no customer PII.
 
 > **Note on older references.** A few code comments and migration headers written
 > in earlier phases may still cite a prior working numbering (e.g. "security =
@@ -718,6 +721,45 @@ unchanged and green.
 - [x] Docs updated (this file, README, DECISIONS ADR-020).
 - [ ] Reviewer approval.
 
-**Remaining phases:** Phase 8 (inventory) and Phase 10 (analytics) are **paused**;
-Phase 11 (AI Sales Coach) and Phase 12 (final testing / deployment / security /
-governance) are **future**.
+**Remaining phases:** Phase 8 (inventory) is **paused**; Phase 11 (AI Sales
+Coach) and Phase 12 (final testing / deployment / security / governance) are
+**future**.
+
+---
+
+## 17. Phase 10 status — ✅ COMPLETED (demo mode; pending reviewer approval)
+
+Phase 10 (Performance analytics dashboard) is complete, **DEMO MODE ONLY**. **All
+checks pass:** typecheck OK, 97 tests (9 new analytics), build OK; DB validations
+unchanged and green.
+
+- [x] Pure aggregation service (`src/features/analytics/aggregate.ts`) turns a
+      list of enriched events into an `AnalyticsSummary`: total logged, acceptance
+      rate (interested + added to basket), attach rate, decline / unavailable /
+      not-relevant rates, the full 8-action outcome distribution, and acceptance
+      grouped by customer need, by recommendation category, and by product pairing
+      (top 5). No I/O — fully unit-testable, divide-by-zero-safe.
+- [x] Synthetic dataset (`src/features/analytics/demoEvents.ts`) — a fixed,
+      deterministic set of ~378 events across upgrade / alternative / socks /
+      shoe-care recommendations and the walking / work / fitness needs. Every row
+      is invented; no real store, associate, or customer data; no PII.
+- [x] `AnalyticsDashboard` (presentational) — a prominent **DEMO — synthetic
+      analytics** banner, summary cards (📊 logged · 🎯 acceptance · 🛒 attach ·
+      ❌ declined), outcome distribution, by-need, by-category, and top pairings,
+      plus an empty state. `AnalyticsPage` aggregates the synthetic events and is
+      **gated to `isDemoMode`** (a non-demo build shows a "demo-only preview"
+      notice — there is no production reporting pipeline yet).
+- [x] Reached from a demo-only **Analytics** link in the header; `/analytics`
+      route behind `RequireAuth`.
+- [x] No AI, no external requests, no scrapers, no real-sales claims, no customer
+      PII. Figures are labeled synthetic/for-demonstration throughout.
+- [x] Tests: aggregation math (totals, rates, fixed outcome order, empty-set
+      safety, top-pair ranking, need/category grouping), `pct` formatting,
+      dataset coverage, dashboard disclaimer + empty state; Phase 4–9 flows still
+      green. Browser demo updated.
+- [x] Docs updated (this file, README, DECISIONS ADR-021).
+- [ ] Reviewer approval.
+
+**Remaining phases:** Phase 8 (inventory) is **paused**; Phase 11 (AI Sales
+Coach) and Phase 12 (final testing / deployment / security / governance) are
+**future**.

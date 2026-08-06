@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240" viewBox="0 0 320 240" role="img" aria-label="Demo shoe placeholder">
+  <rect width="320" height="240" fill="#e6edf5"/>
+  <path d="M40 150 q10-30 60-30 l30 20 q40 6 120 20 q20 4 20 20 v10 H40 z" fill="#9db4cc"/>
+  <text x="160" y="210" font-family="system-ui,sans-serif" font-size="16" fill="#456" text-anchor="middle">DEMO SHOE</text>
+</svg>

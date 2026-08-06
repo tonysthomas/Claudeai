@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240" viewBox="0 0 320 240" role="img" aria-label="Demo shoe-care placeholder">
+  <rect width="320" height="240" fill="#f2ecf5"/>
+  <rect x="130" y="60" width="60" height="110" rx="10" fill="#b79ccc"/>
+  <rect x="145" y="40" width="30" height="24" rx="4" fill="#8f74a8"/>
+  <text x="160" y="205" font-family="system-ui,sans-serif" font-size="15" fill="#534" text-anchor="middle">DEMO SHOE CARE</text>
+</svg>

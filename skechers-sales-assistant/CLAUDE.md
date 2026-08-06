@@ -202,8 +202,9 @@ Do **not** build these until their phase is approved:
   production**, the security & deployment phase MUST review and restrict:
   anonymous product reads · catalogue import permissions · product approval
   permissions · recommendation-relationship changes · inventory updates ·
-  recommendation-event writes. See `PROJECT_PLAN.md` (Pre-production security
-  review) and `DECISIONS.md` ADR-011.
+  recommendation-event writes · and whether catalogue images are stored vs.
+  referenced by URL. See `PROJECT_PLAN.md` (Pre-production security review) and
+  `DECISIONS.md` ADR-011.
 
 ## Database rules
 

@@ -89,12 +89,16 @@ The demo's anonymous read policy is acceptable **only** because it exposes
 synthetic products. Before production, the security & deployment phase must
 review and restrict:
 
-- [ ] **Anonymous product reads** — scope/limit what unauthenticated clients see.
-- [ ] **Catalogue import permissions** — restrict who/what can import.
-- [ ] **Product approval permissions** — restrict who can approve records.
-- [ ] **Recommendation-relationship changes** — restrict edge create/update.
+- [ ] **Who can view products** — scope/limit what unauthenticated clients see
+      (current demo allows anonymous reads of synthetic data only).
+- [ ] **Who can upload catalogues** — restrict catalogue-import permissions.
+- [ ] **Who can approve products** — restrict product-approval permissions.
+- [ ] **Who can modify relationships** — restrict recommendation-edge create/update.
 - [ ] **Inventory updates** — restrict who can write inventory.
-- [ ] **Recommendation-event writes** — narrow, validated insert policy only.
+- [ ] **Who can write recommendation events** — narrow, validated insert policy only.
+- [ ] **Catalogue image storage vs. URL reference** — decide whether images are
+      stored (e.g. Supabase Storage) or referenced by URL, with the security,
+      privacy, licensing, and availability implications of each.
 
 (Not a blocker for Phase 3; tracked here so it is not lost.)
 

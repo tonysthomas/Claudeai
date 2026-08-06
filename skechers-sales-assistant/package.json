@@ -1,0 +1,24 @@
+{
+  "name": "skechers-sales-assistant",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "description": "Catalogue-import foundation for the Skechers Sales Assistant (synthetic demo).",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "import:demo": "tsx scripts/run-import-demo.ts"
+  },
+  "dependencies": {
+    "papaparse": "^5.4.1",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.0",
+    "@types/papaparse": "^5.3.14",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.2",
+    "vitest": "^2.1.2"
+  }
+}

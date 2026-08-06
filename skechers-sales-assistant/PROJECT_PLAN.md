@@ -63,16 +63,23 @@ agreement.
 
 Each phase ends with a review and an explicit approval gate before the next.
 
+> **Delivery log (linear execution order).** ✅ **1. Planning & setup** → ✅
+> **2. Data model & seed** → ✅ **3. Catalogue import workflow**
+> (`database/IMPORT.md`) → ▶ **next: Core UI shell**. The table below lists the
+> thematic work-areas; their numbers are stable references used across the
+> docs/code (e.g. "auth = Phase 6"). The catalogue-import workflow delivered the
+> approved-import foundation of the "Real data" area (thematic Phase 8) early.
+
 | Phase | Name | Focus | Notable exclusions |
 |------|------|-------|--------------------|
 | **1 ✅** | Planning & setup | This doc, `CLAUDE.md`, `DECISIONS.md`, folder skeleton, env template | No code/engine/UI/auth/AI/real data |
 | **2 ✅** | Data model & seed | Supabase schema + migrations (8 tables), enums, RLS, synthetic seed, placeholder images, validation | No UI yet |
-| **3 (next)** | Core UI shell | React + Vite + Tailwind PWA shell, routing, product lookup + display, need selection (reads seed data) | No recommendation logic |
+| **3** | Core UI shell | React + Vite + Tailwind PWA shell, routing, product lookup + display, need selection (reads catalogue data) | No recommendation logic |
 | **4** | Recommendation engine (rules-based) | Deterministic scoring/prioritization from stored relationships + rules; return top 3 across categories | No AI |
 | **5** | Outcome logging | Record outcomes to DB (anonymous), narrow write policy, basic validation | No analytics dashboards |
 | **6** | Auth | Supabase Auth for associates; attribute outcomes to associate/store | — |
 | **7** | AI assist (grounded) | LLM re-ranking / phrasing constrained to approved catalog data; guardrails & evals | Never introduces new facts |
-| **8** | Real data & scanning | Approved catalog import pipeline, camera barcode scanning | — |
+| **8** | Real data & scanning | Approved catalog import pipeline **(import foundation ✅ delivered — `database/IMPORT.md`)**, camera barcode scanning | — |
 | **9** | Integrations & analytics | POS/inventory & live availability, manager dashboards, A/B testing, i18n, offline sync | — |
 | **10** | Security hardening & deployment | Production RLS/permission review (see checklist below), secrets & env hardening, deploy pipeline | Final phase before launch |
 
@@ -492,14 +499,42 @@ validations pass** (14/14 — see `database/VALIDATION.md`).
       (`database/tests/validation.sql`); **all 14 checks pass** on PostgreSQL 16.
 - [x] Synthetic data only; no scraping, frontend, auth, AI, barcode scanning,
       recommendation UI, or production Supabase connection.
-- [ ] Reviewer approval before starting Phase 3.
+- [x] Reviewer approval before starting Phase 3.
 
-**Note on validation environment:** the Supabase CLI/Docker daemon were not
-available, so validation ran against a local PostgreSQL 16 cluster (the engine
-Supabase runs). The migration is portable — Supabase-only role grants are
-applied only if `anon`/`authenticated` exist — so `supabase db reset` will work
-unchanged in a full Supabase environment.
+**Note on validation environment:** validation ran against the official Supabase
+Postgres image and a local PostgreSQL 16 cluster (the Supabase CLI was installed;
+the full `supabase start` stack is blocked in-sandbox by an rlimit restriction —
+see `database/VALIDATION.md`). The migration is portable.
 
-**Phase 3 objective:** Core UI shell — a mobile-first React + Vite + Tailwind PWA
-that reads this seed data: product lookup/display and customer-need selection.
-**No** recommendation engine, auth, AI, or barcode scanning.
+---
+
+## 11. Phase 3 status — ✅ COMPLETED (pending reviewer approval)
+
+Phase 3 (Catalogue import workflow) is complete. **All tests pass:** 38 unit
+tests, 14 core DB checks, and 8 import DB checks.
+
+- [x] Migration `supabase/migrations/20260806130000_create_catalogue_import.sql`
+      adds `catalogue_imports`, `catalogue_import_rows`, `catalogue_versions`
+      (constraints, indexes, `updated_at` trigger, RLS default-deny).
+- [x] Import service `src/import/` — the 16 stages as pure, testable functions:
+      format detection, CSV/Excel/JSON parsing, column mapping, validation
+      (required/type/price/currency/region/image/duplicate SKU & barcode),
+      preview + error report, and an approval-gated commit plan.
+- [x] Safe workflow: imported rows forced to `draft`/`pending_review` (never
+      `approved`); `data_status` forced to `imported`; **approved products are
+      conflict-protected** and never overwritten without explicit confirmation.
+- [x] Sample file `data/demo-catalogue.csv` (5 valid + 4 deliberate errors).
+- [x] Docs `database/IMPORT.md`; `database/SCHEMA.md` updated.
+- [x] Unit tests (`tests/unit/*.test.ts`), DB tests
+      (`database/tests/import_validation.sql`), demo runner
+      (`scripts/run-import-demo.ts`), `db-validate.sh` updated.
+- [x] Synthetic data only; no UI, barcode scanning, AI, auth, scraping, website
+      crawler, live website, or real catalogue data.
+- [ ] Reviewer approval before starting the next phase.
+
+**Package manager:** the TypeScript toolchain uses **npm** (resolves open
+decision #7 for now; can revisit).
+
+**Phase 4 objective:** Core UI shell — a mobile-first React + Vite + Tailwind PWA
+that reads the catalogue/seed data: product lookup + display and customer-need
+selection. **No** recommendation engine, auth, AI, or barcode scanning yet.

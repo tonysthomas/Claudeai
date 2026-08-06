@@ -7,6 +7,11 @@
 node_modules/
 .pnpm-store/
 
+# The repo-root .gitignore globally ignores these (legacy single-file project);
+# re-include them here because this sub-project is a real TypeScript app.
+!package.json
+!package-lock.json
+
 # Build output
 dist/
 dist-ssr/

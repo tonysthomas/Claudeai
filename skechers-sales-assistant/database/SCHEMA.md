@@ -21,6 +21,9 @@ same normalized model.
 | `stores` | Demo store context |
 | `inventory` | Demo, static stock per product/store/size |
 | `recommendation_events` | Anonymous log of what was recommended and the outcome (no PII) |
+| `catalogue_imports` *(Phase 3)* | One catalogue import batch (source, region, importer, counts, status) |
+| `catalogue_import_rows` *(Phase 3)* | Staged import rows with per-row validation result and planned action |
+| `catalogue_versions` *(Phase 3)* | Product version history created through imports |
 
 ## Enumerated (CHECK-constrained) values
 
@@ -195,6 +198,37 @@ Anonymous interaction/outcome log — **no customer PII**.
 **Indexes:** `selected_product_id`, `created_at`.
 
 ---
+
+## Catalogue import tables (Phase 3)
+
+See `database/IMPORT.md` for the full workflow. Migration:
+`supabase/migrations/20260806130000_create_catalogue_import.sql`.
+
+### `catalogue_imports`
+One import batch. Columns: `id`, `file_name`, `file_format`
+(`csv`/`xlsx`/`json`/`api_feed`/`website`), `source_type`, `source_url`,
+`source_identifier`, `source_version`, `region`, `currency`, `status`
+(`draft`/`previewed`/`validated`/`committed`/`approved`/`failed`), `total_rows`,
+`valid_rows`, `invalid_rows`, `committed_rows`, `error_summary` (jsonb),
+`imported_by`, `imported_at`, `notes`, `created_at`, `updated_at` (trigger).
+Indexes: `status`, `imported_at`.
+
+### `catalogue_import_rows`
+Staged rows. Columns: `id`, `import_id` → `catalogue_imports.id` (cascade),
+`row_number`, `raw_data` (jsonb), `normalized_data` (jsonb), `validation_status`
+(`valid`/`invalid`/`pending`), `validation_errors` (jsonb), `action`
+(`insert`/`update`/`conflict`/`skip`), `resolved_product_id` → `products.id`
+(set null), `created_at`. **Unique** `(import_id, row_number)`. Indexes:
+`import_id`, `validation_status`, `resolved_product_id`.
+
+### `catalogue_versions`
+Product version history from imports. Columns: `id`, `product_id` →
+`products.id` (cascade), `import_id` → `catalogue_imports.id` (set null),
+`version_number`, `snapshot` (jsonb), `approval_status`, `change_reason`,
+`changed_by`, `changed_at`. **Unique** `(product_id, version_number)`. Indexes:
+`product_id`, `import_id`.
+
+All three tables are **RLS default-deny** (admin/back-office only; no anon access).
 
 ## Foreign-key relationships (summary)
 

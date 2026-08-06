@@ -16,13 +16,19 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DB_URL="${DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres}"
 PSQL=(psql "$DB_URL" -v ON_ERROR_STOP=1 -X -q)
 
-echo "==> applying migration"
-"${PSQL[@]}" -f "$HERE/supabase/migrations/20260806120000_create_core_schema.sql"
+echo "==> applying migrations (in order)"
+for m in "$HERE"/supabase/migrations/*_*.sql; do
+  echo "    - $(basename "$m")"
+  "${PSQL[@]}" -f "$m"
+done
 
 echo "==> loading seed"
 "${PSQL[@]}" -f "$HERE/supabase/seed.sql"
 
-echo "==> running validation tests"
+echo "==> running core validation tests"
 "${PSQL[@]}" -f "$HERE/database/tests/validation.sql"
+
+echo "==> running catalogue-import validation tests"
+"${PSQL[@]}" -f "$HERE/database/tests/import_validation.sql"
 
 echo "==> OK: all validations passed"

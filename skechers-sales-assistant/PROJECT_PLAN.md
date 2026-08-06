@@ -65,9 +65,9 @@ Each phase ends with a review and an explicit approval gate before the next.
 
 | Phase | Name | Focus | Notable exclusions |
 |------|------|-------|--------------------|
-| **1 (now)** | Planning & setup | This doc, `CLAUDE.md`, `DECISIONS.md`, folder skeleton, env template | No code/engine/UI/auth/AI/real data |
-| **2** | Data model & seed | Supabase schema + migrations, enums/lookups, sample seed data, CSV import script, placeholder images | No UI yet |
-| **3** | Core UI shell | React + Vite + Tailwind PWA shell, routing, product lookup + display, need selection (reads seed data) | No recommendation logic |
+| **1 ✅** | Planning & setup | This doc, `CLAUDE.md`, `DECISIONS.md`, folder skeleton, env template | No code/engine/UI/auth/AI/real data |
+| **2 ✅** | Data model & seed | Supabase schema + migrations (8 tables), enums, RLS, synthetic seed, placeholder images, validation | No UI yet |
+| **3 (next)** | Core UI shell | React + Vite + Tailwind PWA shell, routing, product lookup + display, need selection (reads seed data) | No recommendation logic |
 | **4** | Recommendation engine (rules-based) | Deterministic scoring/prioritization from stored relationships + rules; return top 3 across categories | No AI |
 | **5** | Outcome logging | Record outcomes to DB (anonymous), narrow write policy, basic validation | No analytics dashboards |
 | **6** | Auth | Supabase Auth for associates; attribute outcomes to associate/store | — |
@@ -184,7 +184,22 @@ invents products or relationships and only **explains** approved ones.
 
 ## 5. Database entity list
 
-Detailed columns are defined at build time (Phase 2). Entities and relationships:
+> **Phase 2 — as built (see `database/SCHEMA.md`).** The migration
+> (`supabase/migrations/20260806120000_create_core_schema.sql`) implements **8
+> tables**: `products`, `product_sources`, `product_relationships`,
+> `recommendation_approvals`, `customer_needs`, `stores`, `inventory`,
+> `recommendation_events`. Refinements vs. the original plan below:
+> recommendation copy (`reason`/`customer_benefit`) lives on
+> `product_relationships` (no separate `recommendation_rules` table);
+> `recommendation_events` is the anonymous outcome log (was `outcomes`); a
+> `recommended_for_customer_need` relationship type was added (8 total);
+> `product_url` and the source/approval fields are on `products`, with
+> `permission_status`/`source_region` on `product_sources`. The import-pipeline
+> tables (`import_batches`, `product_import_rows`, `product_versions`),
+> `product_categories`, and `associates` remain **future-phase** and are not yet
+> built.
+
+The originally planned entity list (superseded in part by the note above):
 
 | Entity | Purpose | Key fields (indicative) | Relationships |
 |--------|---------|-------------------------|---------------|
@@ -264,7 +279,7 @@ also stores its source URL and import/synchronization details.
 
 - `relationship_type`: `upgrade_to`, `alternative_to`, `pairs_with`,
   `recommended_add_on`, `lower_price_option`, `higher_price_option`,
-  `best_for_activity`.
+  `best_for_activity`, `recommended_for_customer_need`.
 - `recommendation_type`: `premium_upgrade`, `alternative`, `socks`, `shoe_care`,
   `complementary`.
 - `availability_status`: `in_stock`, `limited`, `out_of_stock`, `order_only`
@@ -439,5 +454,36 @@ Step 1 is complete when:
 - [x] Changes committed and pushed to `claude/skechers-sales-assistant-d3jch5`.
 - [x] **No** app code, recommendation engine, full UI, auth, AI calls, or real
       Skechers data added.
-- [ ] Reviewer approval obtained before starting Phase 2. ← **only item pending
-      (yours to give)**
+- [x] Reviewer approval obtained before starting Phase 2.
+
+---
+
+## 10. Phase 2 status — ✅ COMPLETED (pending reviewer approval)
+
+Phase 2 (Data model & seed) implementation is complete and **all database
+validations pass** (14/14 — see `database/VALIDATION.md`).
+
+- [x] Migration `supabase/migrations/20260806120000_create_core_schema.sql`
+      creates the 8 tables with constraints, indexes, `updated_at` triggers, RLS.
+- [x] `supabase/seed.sql` loads synthetic demo data (18 products, 27
+      relationships, 1 store, 53 inventory rows, 18 sources, 5 events, 3
+      approvals).
+- [x] Placeholder images (`public/images/products/placeholder-*.svg`).
+- [x] `supabase/config.toml` for local Supabase.
+- [x] Docs: `database/SCHEMA.md`, `database/RELATIONSHIPS.md`,
+      `database/VALIDATION.md`.
+- [x] Validation script (`scripts/db-validate.sh`) + tests
+      (`database/tests/validation.sql`); **all 14 checks pass** on PostgreSQL 16.
+- [x] Synthetic data only; no scraping, frontend, auth, AI, barcode scanning,
+      recommendation UI, or production Supabase connection.
+- [ ] Reviewer approval before starting Phase 3.
+
+**Note on validation environment:** the Supabase CLI/Docker daemon were not
+available, so validation ran against a local PostgreSQL 16 cluster (the engine
+Supabase runs). The migration is portable — Supabase-only role grants are
+applied only if `anon`/`authenticated` exist — so `supabase db reset` will work
+unchanged in a full Supabase environment.
+
+**Phase 3 objective:** Core UI shell — a mobile-first React + Vite + Tailwind PWA
+that reads this seed data: product lookup/display and customer-need selection.
+**No** recommendation engine, auth, AI, or barcode scanning.

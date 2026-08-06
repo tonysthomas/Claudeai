@@ -1,0 +1,21 @@
+# Minimal Supabase CLI config for LOCAL development only.
+# Generated/maintained by hand until `supabase init` is run in a full
+# environment. Do NOT put secrets here. Do NOT link this to a production project.
+
+project_id = "skechers-sales-assistant"
+
+[db]
+# Local Postgres port used by `supabase start`.
+port = 54322
+major_version = 15
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+[studio]
+enabled = true
+
+# Auth is intentionally NOT configured in Phase 2 (added in Phase 6).
+[auth]
+enabled = false

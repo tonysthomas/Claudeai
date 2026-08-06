@@ -67,10 +67,11 @@ Each phase ends with a review and an explicit approval gate before the next.
 > relationships** → ✅ **3. Product catalogue & approved import** → ✅ **4. Mobile
 > UI, product lookup & customer needs** → ✅ **5. Rules-based recommendation
 > engine** → ✅ **6. Associate authentication & store context** → ✅ **7.
-> Recommendation outcomes & associate feedback** → ▶ **next: 9. Demo sales
-> guidance layer** (Phase 8 inventory integration is paused). All AI work
-> (grounded assist, LLM rephrasing, AI re-ranking, RAG, AI Sales Coach) is
-> later/future.
+> Recommendation outcomes & associate feedback** → ✅ **9. Demo sales guidance
+> layer** (demo mode only). Remaining: Phase 8 (inventory) and Phase 10
+> (analytics) are **paused**; Phase 11 (AI Sales Coach) and Phase 12 (final /
+> deployment / security) are **future**. All AI work (grounded assist, LLM
+> rephrasing, AI re-ranking, RAG, AI Sales Coach) is later/future.
 
 This is the canonical phase roadmap (single numbering).
 
@@ -84,7 +85,7 @@ This is the canonical phase roadmap (single numbering).
 | **6** | Associate authentication and store context | ✅ complete |
 | **7** | Recommendation outcomes and associate feedback | ✅ complete |
 | **8** | Inventory and store stock integration | ⏸ paused |
-| **9** | Demo sales guidance layer | available in demo mode |
+| **9** | Demo sales guidance layer | ✅ complete (demo mode) |
 | **10** | Performance analytics dashboard | ⏸ paused |
 | **11** | AI Sales Coach | later / future |
 | **12** | Final testing, deployment, security, and governance | future |
@@ -691,3 +692,32 @@ A–H).
 **Next available active phase:** Phase 9 — Demo sales guidance layer (available in
 demo mode). Phase 8 (Inventory and store stock integration) and Phase 10
 (Performance analytics dashboard) are **paused**; AI work is Phase 11+.
+
+---
+
+## 16. Phase 9 status — ✅ COMPLETED (demo mode; pending reviewer approval)
+
+Phase 9 (Demo sales guidance layer) is complete, **DEMO MODE ONLY**. **All checks
+pass:** typecheck OK, 88 tests (7 new guidance), build OK; DB validations
+unchanged and green.
+
+- [x] Deterministic guidance content (`src/features/guidance/content.ts`) maps
+      customer need + recommendation type → discovery question, customer-friendly
+      explanation, objection + suggested response, and closing question, reusing
+      the recommendation's stored (approved) reason/benefit. Every record carries
+      `content_status: 'demo'` and `source_type: 'synthetic'`.
+- [x] Four-step framework: Discover → Explain → Respond → Close.
+- [x] `GuidancePanel` — ❓ Discovery · 💡 Selling point · 🛡️ Objection handling ·
+      🎯 Closing — each with a Copy button, plus a **DEMO** tag. Rendered from an
+      expandable "Show sales guidance" toggle **only when `isDemoMode`**.
+- [x] No AI, no external requests, no scrapers, no customer PII; language avoids
+      medical/biomechanical/unsupported claims.
+- [x] Tests: guidance for Walking/Work/Fitness needs and Upgrade/Alternative/
+      Add-on types, fallback handling, panel + copy, card toggle; Phase 4–7
+      acceptance flows still green. Browser demo updated.
+- [x] Docs updated (this file, README, DECISIONS ADR-020).
+- [ ] Reviewer approval.
+
+**Remaining phases:** Phase 8 (inventory) and Phase 10 (analytics) are **paused**;
+Phase 11 (AI Sales Coach) and Phase 12 (final testing / deployment / security /
+governance) are **future**.

@@ -1,7 +1,10 @@
 // A single recommendation card. Shows only stored data — no generated claims —
-// with an outcome feedback bar (Phase 7) below it.
-import { formatPrice } from '../../lib/format';
+// with an outcome feedback bar (Phase 7) and demo-only sales guidance (Phase 9).
+import { useState } from 'react';
+import { formatPrice, isDemoMode } from '../../lib/format';
 import { OutcomeFeedback } from '../outcomes/OutcomeFeedback';
+import { buildGuidance } from '../guidance/content';
+import { GuidancePanel } from '../guidance/GuidancePanel';
 import type { CustomerNeed, Product } from '../../types/db';
 import { ProductImage } from '../products/ProductImage';
 import type { Recommendation } from './types';
@@ -22,6 +25,7 @@ export function RecommendationCard({
   selected: Product;
   need: CustomerNeed;
 }) {
+  const [showGuidance, setShowGuidance] = useState(false);
   return (
     <article className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm" data-testid="recommendation-card">
       <div className="flex gap-3">
@@ -46,6 +50,21 @@ export function RecommendationCard({
         </div>
       </div>
       <OutcomeFeedback selected={selected} recommended={rec.product} relationshipId={rec.relationshipId} need={need} />
+
+      {/* Sales guidance is DEMO MODE ONLY (synthetic content). */}
+      {isDemoMode && (
+        <div className="mt-2">
+          <button
+            type="button"
+            onClick={() => setShowGuidance((s) => !s)}
+            aria-expanded={showGuidance}
+            className="text-xs font-medium text-brand-accent"
+          >
+            {showGuidance ? 'Hide sales guidance' : '💬 Show sales guidance'}
+          </button>
+          {showGuidance && <GuidancePanel guidance={buildGuidance(rec, need, selected.id)} />}
+        </div>
+      )}
     </article>
   );
 }

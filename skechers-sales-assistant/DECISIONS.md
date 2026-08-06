@@ -111,6 +111,42 @@ is created in Phase 2; the full import tooling/UI is built in Phase 8.
 **Alternatives:** Direct upsert into `products` (rejected — no validation,
 preview, versioning, or approval gate).
 
+### ADR-009 — Source-adapter (multi-source) data architecture
+**Decision:** Support multiple product-data sources behind a common
+source-adapter architecture — (1) authorized Skechers website, (2) approved
+catalogue, (3) official API/feed, (4) internal manual entry, (5) synthetic demo
+data. Every source flows through the same pipeline: *connector → normalization →
+validation → approval → internal product database*. The recommendation engine
+and associate app read **only** the normalized internal database.
+**Context:** Business clarification — the app is for an authorized exclusive
+Skechers retail partner and may eventually consume official product data from
+different sources; the engine must not be permanently coupled to one source.
+**Consequences:** Sources can be added/swapped without touching the engine;
+requires a normalization layer and per-source connectors. Product model gains
+`source_type`, `source_url`, `source_identifier`, `source_region`,
+`source_version`, `permission_status`, `last_synced_at`, `data_status`,
+`approval_status`, `approved_by`, `approved_at`.
+**Alternatives:** Hard-wiring the engine to one source (rejected — brittle,
+blocks region/official-data expansion).
+
+### ADR-010 — Authorized-partner data posture (no live retrieval yet)
+**Decision:** Treat official Skechers data usage as a **future, permission-gated
+capability** unlocked by the partner agreement/approvals. Until then: synthetic
+demo data only; no scraper, crawler, or live website/API retrieval is
+implemented; the frontend never calls an external product website directly; and
+the app never claims endorsement or authorization beyond the actual agreement,
+nor presents itself as a public Skechers website. Region and currency are stored
+per official record; no single global catalogue is assumed.
+**Context:** Business clarification about the partner relationship, balanced
+against the standing no-scraping / synthetic-first guardrails (ADR-007), which
+remain in force.
+**Consequences:** A clear, compliant path to official data later without
+building anything risky now. Supersedes only the earlier "no affiliation at all"
+framing — reframed as "no claims beyond the actual partner agreement"; all other
+ADR-007 guardrails stand.
+**Alternatives:** Enabling website/API access now (rejected — premature, not yet
+authorized, and out of the current phase scope).
+
 ---
 
 ## 3. Project folder structure (proposed)

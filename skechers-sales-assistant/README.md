@@ -11,6 +11,19 @@ consistency.
 > Skechers ecosystem. It never invents products, prices, features,
 > technologies, availability, or claims.
 
+**Operating context.** Built for an **authorized exclusive Skechers retail
+partner**. Subject to the partner agreement and approvals, it may eventually use
+official Skechers product information and approved catalogue references. During
+development it uses **synthetic demo data only** — no live retrieval, no
+scraper/crawler — and never claims endorsement or authorization beyond the
+actual agreement, nor presents itself as a public Skechers website.
+
+**Data sources (multi-source, adapter-based).** The app is designed to draw from
+several product-data sources behind a common source-adapter layer — authorized
+website, approved catalogue, official API/feed, internal manual entry, and
+synthetic demo data — all normalized, validated, and approved into one internal
+database that is the single runtime source of truth. See `PROJECT_PLAN.md` §3a.
+
 ## Status
 
 **Phase 1 — planning & project setup (this commit).** No application code,

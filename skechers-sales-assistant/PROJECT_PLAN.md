@@ -18,6 +18,18 @@ The goal is to lift ATV, UPT, and attach rates while making every associate as
 confident and consistent as the best one on the floor — **without ever inventing
 a product, price, feature, or claim.**
 
+**Operating context.** The app is for an **authorized exclusive Skechers retail
+partner**. Subject to the applicable approval and partner agreement, it should
+eventually be able to use official Skechers website product information and,
+later, approved catalogue references. It may eventually need official product
+data such as: images, product names, style numbers, SKUs/product codes,
+descriptions, features, Skechers technologies, prices, currency, region, sizes,
+product URLs, socks, shoe-care products, and approved upgrade / alternative /
+add-on relationships. Until the partner agreement and approvals are in place,
+development uses synthetic demo data only, with no live retrieval or scraping,
+and the app never claims endorsement or authorization beyond the actual
+agreement.
+
 ---
 
 ## 2. User workflow (MVP)
@@ -62,6 +74,62 @@ Each phase ends with a review and an explicit approval gate before the next.
 | **7** | AI assist (grounded) | LLM re-ranking / phrasing constrained to approved catalog data; guardrails & evals | Never introduces new facts |
 | **8** | Real data & scanning | Approved catalog import pipeline, camera barcode scanning | — |
 | **9** | Integrations & analytics | POS/inventory & live availability, manager dashboards, A/B testing, i18n, offline sync | — |
+
+### Data-source roadmap (future, permission-gated)
+
+Layered on top of the phase roadmap; each item is built through the
+source-adapter architecture (§3a) and only after the relevant approvals:
+
+- **Website connector** — an authorized adapter for official Skechers website
+  product information (no scraping/crawler; permission-gated retrieval only).
+- **Approved catalogue import** — CSV/Excel/JSON upload via the staged,
+  validated, versioned pipeline (§6).
+- **Official API / product-feed connector** — pull/sync from an official feed if
+  provided.
+- **Product synchronization history** — record each sync (source, version,
+  timestamp, changes) for audit and rollback.
+- **Product validation & approval workflow** — normalize → validate → approve
+  before records become active; only approved records are recommended.
+- **Region-specific catalogue support** — per-region products, prices, sizes,
+  images, and availability (no assumption of a single global catalogue).
+
+---
+
+## 3a. Product-data source architecture (multi-source, adapter-based)
+
+The app must support **multiple product-data sources** behind a common
+**source-adapter architecture**, so the recommendation engine is never
+permanently coupled to a single source:
+
+| # | Source | Status | Notes |
+|---|--------|--------|-------|
+| 1 | Authorized Skechers website source | Future, permission-gated | Only after partner agreement/approval; no live retrieval or scraping is built now |
+| 2 | Approved Skechers catalogue | Future | Uploaded via the staged import pipeline (§6) |
+| 3 | Official API / product feed | Future (if provided) | Pull/sync connector |
+| 4 | Internal manual entry | Supported | Curator-entered approved records |
+| 5 | Synthetic demo data | **Active now** | The only source during development |
+
+Each source is reached through its own **data connector (adapter)**; all data is
+**normalized**, validated, and approved before it lands in the internal database.
+Associate interactions read **only** from that normalized internal database.
+
+**Future data flow:**
+
+```
+Product source
+   → Data connector (per-source adapter)
+   → Product normalization
+   → Validation
+   → Approval
+   → Internal product database   ← the single runtime source of truth
+   → Recommendation engine
+   → Associate application
+```
+
+Guardrails (see `CLAUDE.md` for the full list): no live website retrieval,
+scraper, or crawler yet; the frontend never calls an external product website
+directly; region and currency are stored per official record; the AI never
+invents products or relationships and only **explains** approved ones.
 
 ---
 
@@ -168,6 +236,29 @@ Operational columns also present on the table: `is_active` (only active rows are
 recommended), `is_demo` (drives demo labeling of synthetic data), and
 `availability_status` (`in_stock`/`limited`/`out_of_stock`/`order_only`; static
 in the MVP, demo-labeled until live inventory).
+
+#### Product-source & approval fields (planned addition to the model)
+
+To support the multi-source architecture (§3a), the product model gains these
+source/approval-provenance fields. *Planned — the current Phase 2 migration is
+not modified for this update; these are folded in when Phase 2 resumes.*
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `source_type` | text | Which source class: `website` / `catalogue` / `api_feed` / `manual` / `synthetic_demo` |
+| `source_url` | text | Origin URL for the record (already present) |
+| `source_identifier` | text | Stable id in the source system (e.g. source SKU/style ref) |
+| `source_region` | text | Region the source record applies to |
+| `source_version` | text | Version/snapshot tag of the source data |
+| `permission_status` | text | Authorization state to use this record (e.g. `pending`/`granted`/`revoked`) |
+| `last_synced_at` | timestamptz | Last synchronization time from the source |
+| `data_status` | text | Pipeline state (e.g. `raw`/`normalized`/`validated`) |
+| `approval_status` | text | `draft`/`demo`/`pending_review`/`approved`/`rejected`/`archived` (present) |
+| `approved_by` | text/uuid | Who approved the record |
+| `approved_at` | timestamptz | When the record was approved |
+
+Region and currency remain required for official records; every official record
+also stores its source URL and import/synchronization details.
 
 **Enum-like values** (Postgres enums or lookup tables):
 
@@ -321,6 +412,14 @@ Tracked here and mirrored in `DECISIONS.md` (see "Open questions"):
 6. **Scanning hardware** — camera-based barcode vs. store handheld scanners for
    the eventual scan flow.
 7. **Package manager** — pnpm (recommended) vs. npm.
+8. **Partner agreement scope** — which official data fields/sources are covered,
+   and what `permission_status` values the agreement implies?
+9. **Region/currency model** — how many regions at first, and is one product
+   record per region or a shared record with per-region overrides?
+10. **Approval ownership** — who is `approved_by` (role/identity) once auth
+    (Phase 6) exists, and what is the approval SLA?
+11. **Sync cadence** — for the future website/API connectors, how often does
+    `last_synced_at` refresh, and what triggers a re-sync?
 
 ---
 

@@ -12,6 +12,15 @@ associates**. After a customer selects or scans a Skechers product, the app
 recommends the **next best approved product(s)** so the associate can attach,
 upsell, and cross-sell with confidence and consistency.
 
+**Operating context.** The application is built for use by an **authorized
+exclusive Skechers retail partner**. Subject to the applicable approval and
+partner agreement, it should eventually be able to use official Skechers website
+product information and, later, incorporate approved catalogue references. This
+authorized-partner context does **not** loosen the guardrails below: during
+development we use synthetic demo data only, we do not implement any live
+retrieval or scraping, and we never claim endorsement or authorization beyond
+the actual partner agreement.
+
 Business goals it serves:
 
 - Increase Average Transaction Value (ATV).
@@ -59,12 +68,51 @@ Business goals it serves:
   - Use placeholder images or approved development assets only.
   - **Label all prices as demo prices** and **all availability as demo
     availability** in the UI.
-  - Do **not** make the app look like an official Skechers application, and do
-    **not** claim affiliation, authorization, or endorsement by Skechers.
+  - Do **not** present the application as a public Skechers website, and do
+    **not** claim endorsement or authorization **beyond the actual partner
+    agreement** (see Operating context above).
   - Do **not** store personal customer information.
   - Do **not** make medical, health, or otherwise unsupported product claims.
+- **Official data is a future, permission-gated capability.** Once the partner
+  agreement and approvals are in place, the app may use official Skechers
+  product information (see the source list below). Until then, no live retrieval
+  is implemented and synthetic demo data is the only source.
 
 ---
+
+### Data architecture principle (multi-source, adapter-based)
+
+The application must support **multiple product-data sources** behind a common
+**source-adapter architecture**, so the recommendation engine is never
+permanently dependent on one source:
+
+1. Authorized Skechers website source (future, permission-gated).
+2. Approved Skechers catalogue (future).
+3. Official API or product feed, if provided (future).
+4. Internal manual entry.
+5. Synthetic demo data (development — the only active source now).
+
+Every source flows through the same pipeline into one normalized internal
+database, which is the **only** thing associate interactions read from:
+
+```
+Product source → Data connector → Product normalization → Validation →
+Approval → Internal product database → Recommendation engine → Associate app
+```
+
+**Rules for this architecture:**
+
+- **Do not** implement live website retrieval, a scraper, or a crawler yet.
+- **Do not** call any external product website directly from the frontend.
+- **Do not** assume every country has the same products, prices, sizes, images,
+  or availability. Store `region` and `currency` on official product records,
+  plus source URL and import/synchronization details.
+- Associate interactions read **only** from the internal normalized database —
+  never from a live external source.
+- The **AI must not invent** product details or recommendation relationships.
+- Upgrade, alternative, pairs-with, and add-on relationships must be **approved**
+  or generated from **approved business rules**. The AI may **explain** approved
+  relationships in customer-friendly language, but may not create them.
 
 ## MVP scope (Phase 1)
 
@@ -166,8 +214,12 @@ The production data model must let an approved catalogue be uploaded later via
 CSV, Excel, JSON, or an authorized API. Design for this now (schema), even
 though the full import tooling is a later phase.
 
-- **Provenance is mandatory.** Every imported product record must carry:
-  `source`, `imported_at`, `region`, `currency`, and `approval_status`.
+- **Provenance is mandatory.** Every product record must carry full source and
+  approval provenance: `source_type`, `source_url`, `source_identifier`,
+  `source_region`, `source_version`, `permission_status`, `last_synced_at`,
+  `data_status`, `approval_status`, `approved_by`, `approved_at` (plus `region`
+  and `currency` for official records). See `PROJECT_PLAN.md` §5 for the planned
+  product model.
 - **Approval gate.** Imported products are **not active** until manually
   approved. Only approved, active products are ever recommended.
 - **Version history.** Product changes are versioned; superseding a record keeps

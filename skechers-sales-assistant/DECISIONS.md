@@ -203,6 +203,14 @@ no generated claims.
 future AI re-ranking phase that stays grounded on these rows.
 **Alternatives:** Weighted scoring across all types (less predictable), AI-first
 (off-brief).
+**Coverage source.** The engine's *output quality* depends on relationship
+coverage, not on the rules. Coverage must come from **approved relationship
+data**, never from loosening the filters. In production the pipeline is:
+**Approved catalogue → product features & technologies → approved relationship
+mapping → recommendation engine.** During prototyping the demo seed stands in
+for that pipeline: coverage gaps are fixed by adding complete, approved
+synthetic relationships (see `database/tests/recommendation_validation.sql`),
+not by weakening `upgrade`/`alternative`/`add-on` filtering.
 
 ### ADR-015 — Anonymous display-event logging + demo insert policy
 **Decision:** Recommendation display events are logged to `recommendation_events`

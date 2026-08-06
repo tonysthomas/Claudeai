@@ -1,6 +1,10 @@
 // "Sales Guidance" panel (DEMO MODE ONLY). Renders the four-step framework as
 // touch-friendly cards with copy-to-clipboard, and a clear DEMO indicator.
+// Optionally hosts the Phase 11 "Ask AI Coach" panel when coach context is given.
 import { useState } from 'react';
+import { AICoachPanel } from '../coaching/AICoachPanel';
+import type { CustomerNeed, Product } from '../../types/db';
+import type { Recommendation } from '../recommendations/types';
 import type { GuidanceContent } from './types';
 
 function CopyButton({ text, label }: { text: string; label: string }) {
@@ -43,7 +47,13 @@ function Section({ icon, title, primary, copyText, children }: {
   );
 }
 
-export function GuidancePanel({ guidance }: { guidance: GuidanceContent }) {
+export function GuidancePanel({
+  guidance,
+  coach,
+}: {
+  guidance: GuidanceContent;
+  coach?: { rec: Recommendation; selected: Product; need: CustomerNeed };
+}) {
   return (
     <section
       aria-label="Sales guidance"
@@ -59,6 +69,8 @@ export function GuidancePanel({ guidance }: { guidance: GuidanceContent }) {
           DEMO
         </span>
       </div>
+
+      {coach && <AICoachPanel rec={coach.rec} selected={coach.selected} need={coach.need} />}
 
       <Section icon="❓" title="Discovery question" primary={guidance.discovery_question} copyText={guidance.discovery_question} />
 

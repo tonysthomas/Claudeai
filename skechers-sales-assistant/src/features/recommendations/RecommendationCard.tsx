@@ -62,7 +62,9 @@ export function RecommendationCard({
           >
             {showGuidance ? 'Hide sales guidance' : '💬 Show sales guidance'}
           </button>
-          {showGuidance && <GuidancePanel guidance={buildGuidance(rec, need, selected.id)} />}
+          {showGuidance && (
+            <GuidancePanel guidance={buildGuidance(rec, need, selected.id)} coach={{ rec, selected, need }} />
+          )}
         </div>
       )}
     </article>

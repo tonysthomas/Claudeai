@@ -323,6 +323,37 @@ roles + reporting RLS, a Phase 12 concern); a materialized analytics table
 (unnecessary for demo-only data); charting libraries (kept to lightweight inline
 bars to preserve the self-contained single-file demo and avoid new deps).
 
+### ADR-022 — AI Sales Coach: grounded, provider-abstracted, template-fallback, DEMO_MODE mock (Phase 11)
+**Decision:** The AI Sales Coach is built around a small **`CoachProvider`
+seam** and a service that always guarantees a safe result. The flow is: build a
+**strict grounding context** from ONLY approved data (selected + recommended
+product name/category/technology/key-features, price delta, recommendation type,
+and the approved stored relationship reason/benefit + customer need) → call the
+provider under a **timeout** → **validate** the output through guardrails
+(reject medical/health/biomechanical claims; flag any technology not present in
+the context) → on **any** failure (error, timeout, guardrail) **fall back to the
+Phase 9 deterministic approved templates**. In **DEMO_MODE** the provider is a
+**local mock** that composes natural-language tips **from the context object
+only** (grounded by construction) — **no external API calls, no customer PII**.
+In production `selectCoachProvider` returns **null**, so the coach always serves
+the approved template until a real, approved, retrieval-grounded provider is
+wired behind the same seam. Thumbs 👍/👎 feedback is **demo-only, anonymous, and
+not persisted** (no new table/migration, no PII).
+**Context:** Phase 11 asks for dynamic conversational coaching without violating
+the "approved products only / never invent / grounded AI only" principles or
+introducing external dependencies or PII in the demo.
+**Consequences:** The whole AI path is deterministic and testable offline; the
+guardrails + fallback make the feature safe to ship in demo and safe-by-default
+in production. Swapping the mock for a real LLM (with retrieval over approved
+data) is a one-module change implementing `CoachProvider`; the context builder,
+guardrails, fallback, and UI stay unchanged. AI output is never treated as a
+source of truth — it may only rephrase already-approved facts.
+**Alternatives:** Calling a hosted LLM directly from the browser (leaks keys,
+adds PII/egress risk, non-deterministic tests — rejected); generating selling
+copy without grounding (violates the no-invention principle — rejected);
+persisting AI feedback to a new table now (premature; a reporting/RLS concern for
+Phase 12 — deferred).
+
 ---
 
 ## 3. Project folder structure (proposed)

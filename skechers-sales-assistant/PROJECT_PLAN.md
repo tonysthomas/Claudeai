@@ -69,10 +69,10 @@ Each phase ends with a review and an explicit approval gate before the next.
 > engine** → ✅ **6. Associate authentication & store context** → ✅ **7.
 > Recommendation outcomes & associate feedback** → ✅ **9. Demo sales guidance
 > layer** (demo mode only) → ✅ **10. Performance analytics dashboard** (demo mode
-> only). Remaining: Phase 8 (inventory) is **paused**; Phase 11 (AI Sales Coach)
-> and Phase 12 (final / deployment / security) are **future**. All AI work
-> (grounded assist, LLM rephrasing, AI re-ranking, RAG, AI Sales Coach) is
-> later/future.
+> only) → ✅ **11. AI Sales Coach & grounded LLM integration layer** (demo mode
+> only — local mock provider). Remaining: Phase 8 (inventory) is **paused**;
+> Phase 12 (final / deployment / security) is **future**. In production the AI
+> path is not wired — the service falls back to the Phase 9 approved templates.
 
 This is the canonical phase roadmap (single numbering).
 
@@ -88,14 +88,18 @@ This is the canonical phase roadmap (single numbering).
 | **8** | Inventory and store stock integration | ⏸ paused |
 | **9** | Demo sales guidance layer | ✅ complete (demo mode) |
 | **10** | Performance analytics dashboard | ✅ complete (demo mode) |
-| **11** | AI Sales Coach | later / future |
+| **11** | AI Sales Coach & grounded LLM integration layer | ✅ complete (demo mode) |
 | **12** | Final testing, deployment, security, and governance | future |
 
-> **AI is deferred.** Grounded AI assist, LLM-based copy rephrasing, AI
-> re-ranking, retrieval-augmented generation, and the AI Sales Coach are **later
-> / future** work (Phase 11+). Phases 1–10 contain **no AI**. The Phase 10
-> analytics dashboard aggregates only synthetic demo events — no AI, no real
-> sales data, and no customer PII.
+> **AI is introduced in Phase 11, demo-only and strictly grounded.** Phases 1–10
+> contain **no AI**. Phase 11 adds an **AI Sales Coach** that runs against a
+> **local mock LLM provider in DEMO_MODE only** (no external API calls, no
+> customer PII), generating advice **grounded strictly in approved product /
+> relationship / need data** and passing it through medical/health-claim and
+> grounding guardrails. If the provider fails, times out, or trips a guardrail —
+> and always in production, where no provider is wired — the service falls back
+> to the Phase 9 deterministic approved templates. Real LLM providers, RAG, and
+> AI re-ranking remain **future** work behind the same service seam.
 
 > **Note on older references.** A few code comments and migration headers written
 > in earlier phases may still cite a prior working numbering (e.g. "security =
@@ -760,6 +764,50 @@ unchanged and green.
 - [x] Docs updated (this file, README, DECISIONS ADR-021).
 - [ ] Reviewer approval.
 
-**Remaining phases:** Phase 8 (inventory) is **paused**; Phase 11 (AI Sales
-Coach) and Phase 12 (final testing / deployment / security / governance) are
-**future**.
+**Remaining phases:** Phase 8 (inventory) is **paused**; Phase 12 (final testing /
+deployment / security / governance) is **future**.
+
+---
+
+## 18. Phase 11 status — ✅ COMPLETED (demo mode; pending reviewer approval)
+
+Phase 11 (AI Sales Coach & grounded LLM integration layer) is complete, **DEMO
+MODE ONLY** — a **local mock provider**, no external API calls, no customer PII.
+**All checks pass:** typecheck OK, 114 tests (17 new coaching), build OK; DB
+validations unchanged and green.
+
+- [x] **Strict grounding context** (`src/features/coaching/context.ts`) —
+      `buildCoachContext` assembles a self-contained context from ONLY approved
+      data: selected + recommended product name/category/technology/key-features,
+      the computed price delta, the recommendation type, and the approved stored
+      relationship reason/benefit + customer need. `contextToPrompt` renders it
+      into a strict prompt that encodes the guardrail rules.
+- [x] **Coaching service** (`src/features/coaching/service.ts`) — builds context
+      → calls the provider with a timeout → validates output against the
+      guardrails → on ANY failure (error, timeout, guardrail) falls back to the
+      Phase 9 deterministic approved templates. `selectCoachProvider` returns the
+      local mock in demo and **null in production** (always safe fallback).
+- [x] **Local mock provider** (`src/features/coaching/mockProvider.ts`) —
+      deterministic natural-language coach that composes four sections (discovery,
+      feature→benefit, objection handling, closing) **from context facts only**,
+      so output is grounded by construction. Supports simulated latency and forced
+      failure to exercise fallback.
+- [x] **Guardrails** (`src/features/coaching/guardrails.ts`) — rejects
+      medical/health/therapeutic/biomechanical claims (e.g. "cures plantar
+      fasciitis") and flags any technology not present in the grounding context.
+- [x] **UI** — the Phase 9 sales-guidance panel gains an **"🤖 Ask AI Coach"**
+      button that shows a thinking/loading state, caches the result, renders the
+      tips with a **"Grounded in Approved Data"** badge, labels template fallback,
+      and records 👍/👎 helpfulness locally (demo-only, anonymous, not persisted).
+- [x] No external API calls, no scrapers, no customer PII; production posture is a
+      safe template fallback. Language stays on comfort/feel/fit/style/value.
+- [x] Tests: context builder + prompt attributes, prohibited-claim + grounding
+      guardrails, mock provider structure/variation, service fallback on
+      error/timeout/no-provider, UI ask→render→badge→feedback→fallback; Phase 4–10
+      suites still green. Browser demo updated.
+- [x] Docs updated (this file, README, DECISIONS ADR-022).
+- [ ] Reviewer approval.
+
+**Remaining phases:** Phase 8 (inventory) is **paused**; Phase 12 (final testing /
+deployment / security / governance) is **future**. Real LLM providers, RAG, and
+AI re-ranking plug in behind the same `CoachProvider` seam.

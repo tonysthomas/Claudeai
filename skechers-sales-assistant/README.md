@@ -33,17 +33,19 @@ recommendation engine, and **associate authentication + store context**
 is preserved for local dev and tests (synthetic associate, no login required).
 No AI or real Skechers data yet.
 
-**Phases 7, 9 & 10 complete.** Associates can record an outcome (added to basket /
-interested / declined / unavailable / not relevant) under each recommendation
-(RLS-safe, PII-free); and, **in DEMO_MODE only**, expand a **sales guidance**
-panel (discovery question · selling point · objection handling · closing
-question, each copyable) built from deterministic synthetic content + the stored
-approved reason/benefit, and open a **performance analytics dashboard** that
-aggregates synthetic recommendation events (acceptance / attach rates, outcome
-distribution, and performance by need, category, and product pairing) — clearly
-labeled synthetic, no real sales, no PII. Remaining: Phase 8 (inventory) is
-paused; AI work (grounded assist, LLM rephrasing, AI re-ranking, RAG, AI Sales
-Coach) is later/future (Phase 11+).
+**Phases 7, 9, 10 & 11 complete.** Associates can record an outcome (added to
+basket / interested / declined / unavailable / not relevant) under each
+recommendation (RLS-safe, PII-free); and, **in DEMO_MODE only**, expand a **sales
+guidance** panel (discovery question · selling point · objection handling ·
+closing question, each copyable), open a **performance analytics dashboard** over
+synthetic events, and **"Ask AI Coach"** — a grounded AI sales coach that turns
+approved product facts into conversational discovery / feature→benefit / objection
+/ closing tips. The coach runs on a **local mock LLM in DEMO_MODE** (no external
+API calls, no customer PII), is **grounded strictly in approved data**, is filtered
+by medical-claim + grounding guardrails, and **falls back to the Phase 9 approved
+templates** on any failure — and always in production, where no LLM is wired.
+Remaining: Phase 8 (inventory) is paused; real LLM providers / RAG / AI re-ranking
+are future work behind the same service seam (Phase 12+).
 
 ### Roadmap
 
@@ -57,7 +59,7 @@ Coach) is later/future (Phase 11+).
 8. Inventory and store stock integration — paused
 9. Demo sales guidance layer — ✅ (demo mode only)
 10. Performance analytics dashboard — ✅ (demo mode only)
-11. AI Sales Coach — later / future
+11. AI Sales Coach & grounded LLM integration layer — ✅ (demo mode only)
 12. Final testing, deployment, security, and governance — future
 
 ### Auth & DEMO_MODE

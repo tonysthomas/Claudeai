@@ -604,6 +604,13 @@ new migration applied.
       flow; the Phase 4 acceptance flow still passes.
 - [x] Browser demo updated (`src/demo/recommendations.ts`) — recommendations now
       render in the self-contained demo build.
+- [x] **Seed coverage expansion (post-review):** added demo shoes *Demo Everyday
+      Comfort 1*, *Demo Trail Active 1*, *Demo Sport Fit Runner 2* and full
+      relationship sets so five demo shoes (Walk Comfort 1, Work Cushion 1, Sport
+      Fit Runner 1, Everyday Comfort 1, Trail Active 1) each return an upgrade +
+      alternative + add-on. New `database/tests/recommendation_validation.sql`
+      (R1–R5) verifies coverage; core/import counts updated (21 products, 48
+      relationships).
 - [ ] Reviewer approval before starting the next phase.
 
 **Phase 6 objective:** Authentication — Supabase Auth for associates; attribute

@@ -31,4 +31,7 @@ echo "==> running core validation tests"
 echo "==> running catalogue-import validation tests"
 "${PSQL[@]}" -f "$HERE/database/tests/import_validation.sql"
 
+echo "==> running recommendation validation tests"
+"${PSQL[@]}" -f "$HERE/database/tests/recommendation_validation.sql"
+
 echo "==> OK: all validations passed"

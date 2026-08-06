@@ -38,6 +38,10 @@ values
   ('SHOE-BUDGET-001',  'Demo Budget Step 1',       'shoes', 'budget',             'unisex', 'Grey',     'US 7-12', 39.99, '/images/products/placeholder-shoe.svg', 'Synthetic demo value shoe at a friendly price.',              '["Everyday value","Cushioned"]'::jsonb,           'Demo Basic Cushion',   'walking'),
   ('SHOE-MAXC-001',    'Demo Max Cushion Cloud 1', 'shoes', 'maximum_cushioning', 'unisex', 'Teal',     'US 7-12', 94.99, '/images/products/placeholder-shoe.svg', 'Synthetic demo max-cushioning shoe for a plush ride.',        '["Cloud foam","Ultra soft"]'::jsonb,              'Demo Cloud Foam',      'walking'),
   ('SHOE-EVERYDAY-001','Demo Everyday Slip-On 1',  'shoes', 'everyday',           'unisex', 'Charcoal', 'US 7-12', 54.99, '/images/products/placeholder-shoe.svg', 'Synthetic demo slip-on for easy all-day comfort.',            '["Slip-on","Stretch fit"]'::jsonb,                'Demo Stretch Fit',     'everyday'),
+  -- shoes added for Phase 5 recommendation coverage (synthetic demo)
+  ('SHOE-FIT-002',     'Demo Sport Fit Runner 2',  'shoes', 'fitness',            'unisex', 'Red',      'US 7-12', 109.99,'/images/products/placeholder-shoe.svg', 'Synthetic demo premium training shoe.',                       '["Pro rebound foam","Stability heel"]'::jsonb,    'Demo Rebound Foam Pro','fitness'),
+  ('SHOE-EVERYDAY-002','Demo Everyday Comfort 1',  'shoes', 'everyday',           'unisex', 'Stone',    'US 7-12', 49.99, '/images/products/placeholder-shoe.svg', 'Synthetic demo everyday comfort shoe.',                       '["Everyday comfort","Soft collar"]'::jsonb,       'Demo Comfort Foam',    'everyday'),
+  ('SHOE-TRAIL-001',   'Demo Trail Active 1',      'shoes', 'trail',              'unisex', 'Olive',    'US 7-12', 84.99, '/images/products/placeholder-shoe.svg', 'Synthetic demo trail shoe for active outdoor use.',           '["Rugged outsole","Water resistant"]'::jsonb,     'Demo Trail Grip',      'trail'),
   -- socks (5)
   ('SOCK-PERF-001',    'Demo Performance Sock 1',  'socks', 'performance',        'unisex', 'White',    'M/L',     12.99, '/images/products/placeholder-sock.svg', 'Synthetic demo moisture-wicking performance socks.',          '["Moisture wicking","Arch band"]'::jsonb,         null,                   'fitness'),
   ('SOCK-PERF-002',    'Demo Performance Sock 2',  'socks', 'performance',        'unisex', 'Black',    'M/L',     14.99, '/images/products/placeholder-sock.svg', 'Synthetic demo cushioned performance socks.',                 '["Cushioned sole","Blister guard"]'::jsonb,       null,                   'fitness'),
@@ -102,6 +106,48 @@ from (values
   ('SHOE-STYLE-001','SHOE-WORK-002','recommended_for_customer_need',1,'Recommended for long work hours.',      'Support for long shifts.',                        'work','work_long_hours'),
   ('SHOE-STYLE-001','SHOE-MAXC-001','recommended_for_customer_need',1,'Recommended for maximum cushioning.',   'The plushest option.',                            'cushioning','maximum_cushioning'),
   ('SHOE-STYLE-001','SHOE-BUDGET-001','recommended_for_customer_need',1,'Recommended for budget needs.',       'Great value at a lower price.',                   'walking','budget')
+) as v(src_sku, tgt_sku, rtype, prio, reason, benefit, activity, need)
+join public.products s on s.sku = v.src_sku
+join public.products t on t.sku = v.tgt_sku;
+
+-- -----------------------------------------------------------------------------
+-- Phase 5 recommendation-coverage expansion (synthetic demo)
+-- Ensures five demo shoes each have a full slottable set (upgrade + alternative
+-- + socks/shoe-care add-on) plus best_for_activity + recommended_for_customer_need:
+--   Demo Walk Comfort 1, Demo Work Cushion 1, Demo Sport Fit Runner 1,
+--   Demo Everyday Comfort 1, Demo Trail Active 1.
+-- All demo data; no self-references; no duplicate (source,target,type) edges.
+-- -----------------------------------------------------------------------------
+insert into public.product_relationships
+  (source_product_id, target_product_id, relationship_type, priority, reason, customer_benefit, activity_type, customer_need, active)
+select s.id, t.id, v.rtype, v.prio, v.reason, v.benefit, v.activity, v.need, true
+from (values
+  -- Demo Walk Comfort 1: already has upgrade/alt/add-on; add the remaining types
+  ('SHOE-WALK-001','SHOE-MAXC-001','best_for_activity',2,'Best for cushioned walking.','Extra-soft ride for long walks.','walking','walking'),
+  ('SHOE-WALK-001','SHOE-WALK-002','recommended_for_customer_need',3,'Recommended for walking needs.','Premium comfort matched to walking.','walking','walking'),
+  -- Demo Work Cushion 1: add the missing alternative + remaining types
+  ('SHOE-WORK-001','SHOE-EVERYDAY-001','alternative_to',2,'A slip-on alternative for work.','Easy on/off with all-day comfort.','everyday','work_long_hours'),
+  ('SHOE-WORK-001','SHOE-WORK-002','best_for_activity',2,'Best for long work shifts.','Slip resistance and cushioning.','work','work_long_hours'),
+  ('SHOE-WORK-001','SHOE-WORK-002','recommended_for_customer_need',3,'Recommended for long hours on your feet.','Support across long shifts.','work','work_long_hours'),
+  -- Demo Sport Fit Runner 1: add the missing upgrade + shoe-care add-on + remaining types
+  ('SHOE-FIT-001','SHOE-FIT-002','upgrade_to',1,'Upgrade to the pro trainer.','More rebound and stability for tougher workouts.','fitness','fitness'),
+  ('SHOE-FIT-001','CARE-INSOLE-001','recommended_add_on',1,'Add fresh insoles.','Extra freshness for gym days.',null,'fitness'),
+  ('SHOE-FIT-001','SHOE-MAXC-001','best_for_activity',2,'Best for cushioned training.','Softer landings during workouts.','fitness','fitness'),
+  ('SHOE-FIT-001','SHOE-FIT-002','recommended_for_customer_need',3,'Recommended for fitness needs.','Performance for training.','fitness','fitness'),
+  -- Demo Everyday Comfort 1 (new): full set
+  ('SHOE-EVERYDAY-002','SHOE-WALK-002','upgrade_to',1,'Upgrade to premium cushioning.','Softer, longer-lasting comfort.','everyday','everyday_comfort'),
+  ('SHOE-EVERYDAY-002','SHOE-EVERYDAY-001','alternative_to',2,'A slip-on alternative.','Easy on/off everyday wear.','everyday','everyday_comfort'),
+  ('SHOE-EVERYDAY-002','SOCK-NOSHOW-001','pairs_with',1,'Pairs with no-show socks.','Clean look with everyday shoes.',null,'everyday_comfort'),
+  ('SHOE-EVERYDAY-002','CARE-KIT-001','recommended_add_on',1,'Add a shoe-care kit.','Keeps everyday shoes fresh.',null,null),
+  ('SHOE-EVERYDAY-002','SHOE-WALK-001','best_for_activity',2,'Best for everyday walking.','Comfort for daily wear.','walking','everyday_comfort'),
+  ('SHOE-EVERYDAY-002','SHOE-WALK-001','recommended_for_customer_need',3,'Recommended for everyday comfort.','All-day softness.','everyday','everyday_comfort'),
+  -- Demo Trail Active 1 (new): full set
+  ('SHOE-TRAIL-001','SHOE-MAXC-001','upgrade_to',1,'Upgrade to maximum cushioning.','Plusher ride on long trails.','trail','maximum_cushioning'),
+  ('SHOE-TRAIL-001','SHOE-FIT-001','alternative_to',2,'A road-runner alternative.','Lighter option for mixed terrain.','fitness','fitness'),
+  ('SHOE-TRAIL-001','SOCK-PERF-001','pairs_with',1,'Pairs with performance socks.','Moisture control on the trail.',null,'fitness'),
+  ('SHOE-TRAIL-001','CARE-SPRAY-001','recommended_add_on',1,'Add water-repellent spray.','Protects against trail weather.',null,'travel'),
+  ('SHOE-TRAIL-001','SHOE-WALK-001','best_for_activity',2,'Best for active walking.','Rugged comfort off-road.','trail','walking'),
+  ('SHOE-TRAIL-001','SHOE-FIT-001','recommended_for_customer_need',3,'Recommended for fitness needs.','Support for active use.','fitness','fitness')
 ) as v(src_sku, tgt_sku, rtype, prio, reason, benefit, activity, need)
 join public.products s on s.sku = v.src_sku
 join public.products t on t.sku = v.tgt_sku;

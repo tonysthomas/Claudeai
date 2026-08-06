@@ -31,18 +31,18 @@ end $$;
 do $$
 declare c int;
 begin
-  select count(*) into c from public.products;               if c <> 18 then raise exception 'FAIL: products=% (want 18)', c; end if;
-  select count(*) into c from public.products where category='shoes';     if c <> 10 then raise exception 'FAIL: shoes=% (want 10)', c; end if;
+  select count(*) into c from public.products;               if c <> 21 then raise exception 'FAIL: products=% (want 21)', c; end if;
+  select count(*) into c from public.products where category='shoes';     if c <> 13 then raise exception 'FAIL: shoes=% (want 13)', c; end if;
   select count(*) into c from public.products where category='socks';     if c <> 5  then raise exception 'FAIL: socks=% (want 5)', c;  end if;
   select count(*) into c from public.products where category='shoe_care'; if c <> 3  then raise exception 'FAIL: shoe_care=% (want 3)', c; end if;
-  select count(*) into c from public.product_sources;        if c <> 18 then raise exception 'FAIL: product_sources=% (want 18)', c; end if;
-  select count(*) into c from public.product_relationships;  if c <> 27 then raise exception 'FAIL: relationships=% (want 27)', c; end if;
+  select count(*) into c from public.product_sources;        if c <> 21 then raise exception 'FAIL: product_sources=% (want 21)', c; end if;
+  select count(*) into c from public.product_relationships;  if c <> 48 then raise exception 'FAIL: relationships=% (want 48)', c; end if;
   select count(*) into c from public.customer_needs;         if c <> 9  then raise exception 'FAIL: customer_needs=% (want 9)', c; end if;
   select count(*) into c from public.stores;                 if c <> 1  then raise exception 'FAIL: stores=% (want 1)', c; end if;
   select count(*) into c from public.inventory;              if c < 1   then raise exception 'FAIL: inventory empty'; end if;
   select count(*) into c from public.recommendation_events;  if c <> 5  then raise exception 'FAIL: events=% (want 5)', c; end if;
-  select count(*) into c from public.recommendation_approvals; if c <> 3 then raise exception 'FAIL: approvals=% (want 3)', c; end if;
-  raise notice 'PASS 2: seed counts correct (18 products, 27 relationships, ...)';
+  select count(*) into c from public.recommendation_approvals; if c <> 6 then raise exception 'FAIL: approvals=% (want 6)', c; end if;
+  raise notice 'PASS 2: seed counts correct (21 products, 48 relationships, ...)';
 end $$;
 
 -- 3. Products can be queried ---------------------------------------------------

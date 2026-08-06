@@ -39,7 +39,7 @@ function make(p: Partial<Product> & Pick<Product, 'sku' | 'name' | 'category'>):
   };
 }
 
-const DEMO_PRODUCTS: Product[] = [
+export const DEMO_PRODUCTS: Product[] = [
   make({ sku: 'SHOE-WALK-001', style_number: 'STY-001', name: 'Demo Walk Comfort 1', category: 'shoes', subcategory: 'walking', color: 'Grey', price: 59.99, technology: 'Demo Air Cushion', activity_type: 'walking', image_url: SHOE, description: 'Synthetic demo walking shoe for everyday comfort.', key_features: ['Cushioned midsole', 'Breathable upper'] }),
   make({ sku: 'SHOE-WALK-002', style_number: 'STY-002', name: 'Demo Walk Comfort 2', category: 'shoes', subcategory: 'walking', color: 'Black', price: 89.99, technology: 'Demo Air Cushion Max', activity_type: 'walking', image_url: SHOE, description: 'Synthetic demo premium walking shoe with extra cushioning.', key_features: ['Max cushioning', 'Arch support'] }),
   make({ sku: 'SHOE-WORK-001', style_number: 'STY-003', name: 'Demo Work Cushion 1', category: 'shoes', subcategory: 'work', color: 'Black', price: 69.99, technology: 'Demo Slip Resist', activity_type: 'work', image_url: SHOE, description: 'Synthetic demo work shoe for long hours on your feet.', key_features: ['Slip resistant', 'All-day cushioning'] }),

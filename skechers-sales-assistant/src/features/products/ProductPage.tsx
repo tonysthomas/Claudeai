@@ -6,6 +6,7 @@ import { EmptyState } from '../../components/ui/states';
 import { useCustomerNeeds } from '../needs/hooks';
 import { CustomerNeedSelector } from '../needs/CustomerNeedSelector';
 import { useSelection } from '../selection/SelectionContext';
+import { RecommendationsSection } from '../recommendations/RecommendationsSection';
 import type { CustomerNeed } from '../../types/db';
 import { ProductDetailView } from './ProductDetailView';
 import { useProduct } from './hooks';
@@ -56,6 +57,7 @@ export function ProductPage() {
               });
             }}
           />
+          {selectedNeed && <RecommendationsSection product={product.data} need={selectedNeed} />}
         </>
       )}
     </div>

@@ -26,10 +26,11 @@ database that is the single runtime source of truth. See `PROJECT_PLAN.md` §3a.
 
 ## Status
 
-**Phases 1–4 complete.** Planning & setup, database foundation (8 tables +
-synthetic seed), catalogue-import workflow, and the **mobile UI shell** (product
-search/detail + customer-need selection). No recommendation engine, AI, auth, or
-real Skechers data yet.
+**Phases 1–5 complete.** Planning & setup, database foundation (8 tables +
+synthetic seed), catalogue-import workflow, the mobile UI shell (product
+search/detail + customer-need selection), and the **rules-based recommendation
+engine** (deterministic upgrade / alternative / add-on with anonymous display
+logging). No AI, auth, or real Skechers data yet.
 
 Start here:
 

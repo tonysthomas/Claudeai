@@ -188,6 +188,34 @@ Skechers pricing/branding.
 **Consequences:** Safe to demo; flip `VITE_DEMO_MODE=false` only with approved
 real data. **Alternatives:** No demo labeling (rejected — misleading).
 
+### ADR-014 — Deterministic slot-based recommendation engine (Phase 5)
+**Decision:** The engine is a pure function over candidate relationships. It
+fills three fixed slots — premium upgrade (`upgrade_to`), alternative
+(`alternative_to`), and add-on (`pairs_with`/`recommended_add_on` to
+socks/shoe-care) — taking one per slot, max three. Ordering within a slot is
+fully deterministic: need-relevant first → `priority` asc → price asc → SKU asc.
+It excludes the source product, inactive/unapproved/out-of-region/out-of-stock
+candidates, and mismatched `recommended_for_customer_need` edges; it dedupes
+target products and copies `reason`/`customer_benefit` verbatim.
+**Context:** Phase 5 needs explainable, testable recommendations with no AI and
+no generated claims.
+**Consequences:** Same inputs → same outputs (unit-tested); a clean seam for a
+future AI re-ranking phase that stays grounded on these rows.
+**Alternatives:** Weighted scoring across all types (less predictable), AI-first
+(off-brief).
+
+### ADR-015 — Anonymous display-event logging + demo insert policy
+**Decision:** Recommendation display events are logged to `recommendation_events`
+with **no** associate/customer identity (`associate_id` null). A narrow RLS
+insert policy (`with check (associate_id is null)`) lets the demo client write
+them; logging is best-effort and never blocks the UI.
+**Context:** The spec requires recording display events without collecting PII,
+while RLS is otherwise default-deny.
+**Consequences:** Anonymous analytics are captured now; the Phase 10 security
+review will tighten who can write events (already on the checklist).
+**Alternatives:** No logging (loses signal); a service-role write from the client
+(rejected — never ship service-role keys to the browser).
+
 ---
 
 ## 3. Project folder structure (proposed)

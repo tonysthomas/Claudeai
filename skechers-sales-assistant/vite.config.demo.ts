@@ -16,6 +16,7 @@ function demoDataSource() {
     resolveId(source: string) {
       if (source.endsWith('/lib/products')) return resolve(here, 'src/demo/products.ts');
       if (source.endsWith('/lib/customerNeeds')) return resolve(here, 'src/demo/customerNeeds.ts');
+      if (source.endsWith('/lib/recommendations')) return resolve(here, 'src/demo/recommendations.ts');
       return null;
     },
   };

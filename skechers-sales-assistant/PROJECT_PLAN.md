@@ -66,17 +66,19 @@ Each phase ends with a review and an explicit approval gate before the next.
 > **Delivery log (linear execution order).** ✅ **1. Planning & setup** → ✅
 > **2. Data model & seed** → ✅ **3. Catalogue import workflow**
 > (`database/IMPORT.md`) → ✅ **4. Mobile UI shell** (product lookup + detail +
-> customer-need selection) → ▶ **next: recommendation engine**. The table below
-> lists the thematic work-areas; their numbers are stable references used across
-> the docs/code (e.g. "auth = Phase 6"). Catalogue import delivered the
-> approved-import foundation of the "Real data" area (thematic Phase 8) early.
+> customer-need selection) → ✅ **5. Rules-based recommendation engine**
+> (upgrade / alternative / add-on + anonymous display logging) → ▶ **next: auth**.
+> The table below lists the thematic work-areas; their numbers are stable
+> references used across the docs/code (e.g. "auth = Phase 6"). Catalogue import
+> delivered the approved-import foundation of the "Real data" area (thematic
+> Phase 8) early.
 
 | Phase | Name | Focus | Notable exclusions |
 |------|------|-------|--------------------|
 | **1 ✅** | Planning & setup | This doc, `CLAUDE.md`, `DECISIONS.md`, folder skeleton, env template | No code/engine/UI/auth/AI/real data |
 | **2 ✅** | Data model & seed | Supabase schema + migrations (8 tables), enums, RLS, synthetic seed, placeholder images, validation | No UI yet |
 | **3 ✅** | Core UI shell | React + Vite + Tailwind app, routing, product lookup + display, need selection (reads catalogue data) | No recommendation logic |
-| **4** | Recommendation engine (rules-based) | Deterministic scoring/prioritization from stored relationships + rules; return top 3 across categories | No AI |
+| **4 ✅** | Recommendation engine (rules-based) | Deterministic prioritization from approved `product_relationships`; top-3 across categories; anonymous display logging | No AI |
 | **5** | Outcome logging | Record outcomes to DB (anonymous), narrow write policy, basic validation | No analytics dashboards |
 | **6** | Auth | Supabase Auth for associates; attribute outcomes to associate/store | — |
 | **7** | AI assist (grounded) | LLM re-ranking / phrasing constrained to approved catalog data; guardrails & evals | Never introduces new facts |
@@ -575,3 +577,35 @@ top prioritized, approved recommendations (upgrade / alternative / socks /
 shoe-care), each with its stored reason, customer benefit, and selling copy,
 rendered in the UI with outcome logging. Deterministic and unit-tested; **no
 AI**.
+
+---
+
+## 13. Phase 5 status — ✅ COMPLETED (pending reviewer approval)
+
+Phase 5 (Rules-based recommendation engine) is complete. **All checks pass:**
+typecheck OK, 66 tests (12 new: 7 engine unit + 4 list-view + 1 acceptance),
+production build OK, and DB validation (14 core + 8 import) still green with the
+new migration applied.
+
+- [x] Deterministic engine `src/features/recommendations/engine.ts` (pure, no
+      AI): filters by self/active/approval/region/availability + need-typed
+      match; slots into premium upgrade / alternative / socks-or-care add-on;
+      orders need-relevant → priority → price → SKU; dedupes; max 3; copies
+      stored reason/benefit verbatim (no generated claims).
+- [x] Query layer `src/lib/recommendations.ts`: approved `product_relationships`
+      → target products → inventory availability; anonymous `displayed` event
+      logging (no PII; `associate_id` null).
+- [x] UI: `RecommendationCard`, `RecommendationListView` (loading/error/empty),
+      `RecommendationsSection` wired into the product page after need selection.
+- [x] Migration `20260806140000_recommendation_events_demo_insert.sql`: narrow,
+      PII-free insert policy so the demo can log display events (flagged for the
+      Phase 10 security review).
+- [x] Tests: engine unit tests, list-view state tests, and a Phase 5 acceptance
+      flow; the Phase 4 acceptance flow still passes.
+- [x] Browser demo updated (`src/demo/recommendations.ts`) — recommendations now
+      render in the self-contained demo build.
+- [ ] Reviewer approval before starting the next phase.
+
+**Phase 6 objective:** Authentication — Supabase Auth for associates; attribute
+recommendation/outcome events to an associate/store; begin tightening the RLS
+policies (per the Phase 10 pre-production security review). No AI.

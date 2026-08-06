@@ -30,6 +30,13 @@ vi.mock('../../src/lib/customerNeeds', async (importOriginal) => {
   };
 });
 
+// This Phase 4 flow test focuses on the shell/search/detail/need selection.
+// With no candidates configured, the recommendations section shows its empty state.
+vi.mock('../../src/lib/recommendations', () => ({
+  getRecommendationCandidates: vi.fn(async () => []),
+  logRecommendationsDisplayed: vi.fn(),
+}));
+
 function renderApp() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
@@ -68,13 +75,13 @@ describe('Phase 4 acceptance flow', () => {
     // 5. Select the "Walking" customer need
     await user.click(await screen.findByRole('button', { name: 'Walking' }));
 
-    // 6. Confirmation that the need is selected
-    const status = await screen.findByRole('status');
-    expect(status).toHaveTextContent('Selected: Walking');
+    // 6. Wait for the recommendations section to settle (empty, no candidates),
+    //    which clears its transient loading "status" region.
+    expect(await screen.findByText('No approved recommendations')).toBeInTheDocument();
 
-    // 7. Still NO recommendations at the end of Phase 4
-    expect(screen.queryByText(/recommended product/i)).not.toBeInTheDocument();
-    expect(within(status).getByText(/coming next/i)).toBeInTheDocument();
+    // 7. Confirmation that the need is selected (now the only status region)
+    expect(screen.getByRole('status')).toHaveTextContent('Selected: Walking');
+    expect(screen.queryByTestId('recommendation-card')).not.toBeInTheDocument();
   });
 
   it('shows "Product not found" for an unknown search', async () => {

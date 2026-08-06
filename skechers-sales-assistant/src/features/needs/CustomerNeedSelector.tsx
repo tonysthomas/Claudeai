@@ -38,7 +38,7 @@ export function CustomerNeedSelector({ needs, selectedCode, onSelect }: Customer
       </div>
       {selected && (
         <p role="status" className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-          Selected: <span className="font-semibold">{selected.name}</span>. Ready for recommendations (coming next).
+          Selected: <span className="font-semibold">{selected.name}</span>. See recommendations below.
         </p>
       )}
     </section>

@@ -63,31 +63,40 @@ agreement.
 
 Each phase ends with a review and an explicit approval gate before the next.
 
-> **Delivery log (linear execution order).** ✅ **1. Planning & setup** → ✅
-> **2. Data model & seed** → ✅ **3. Catalogue import workflow**
-> (`database/IMPORT.md`) → ✅ **4. Mobile UI shell** (product lookup + detail +
-> customer-need selection) → ✅ **5. Rules-based recommendation engine**
-> (upgrade / alternative / add-on + anonymous display logging) → ✅ **6. Associate
-> auth & store context** (Supabase Auth, RLS-enforced events) → ▶ **next: grounded AI assist**.
-> The table below lists the thematic work-areas; their numbers are stable
-> references used across the docs/code (e.g. "auth = Phase 6"). Catalogue import
-> delivered the approved-import foundation of the "Real data" area (thematic
-> Phase 8) early.
+> **Delivery log.** ✅ **1. Project foundation** → ✅ **2. Database schema &
+> relationships** → ✅ **3. Product catalogue & approved import** → ✅ **4. Mobile
+> UI, product lookup & customer needs** → ✅ **5. Rules-based recommendation
+> engine** → ✅ **6. Associate authentication & store context** → ▶ **next:
+> 7. Recommendation outcomes & associate feedback**. All AI work (grounded
+> assist, LLM rephrasing, AI re-ranking, RAG, AI Sales Coach) is later/future.
 
-| Phase | Name | Focus | Notable exclusions |
-|------|------|-------|--------------------|
-| **1 ✅** | Planning & setup | This doc, `CLAUDE.md`, `DECISIONS.md`, folder skeleton, env template | No code/engine/UI/auth/AI/real data |
-| **2 ✅** | Data model & seed | Supabase schema + migrations (8 tables), enums, RLS, synthetic seed, placeholder images, validation | No UI yet |
-| **3 ✅** | Core UI shell | React + Vite + Tailwind app, routing, product lookup + display, need selection (reads catalogue data) | No recommendation logic |
-| **4 ✅** | Recommendation engine (rules-based) | Deterministic prioritization from approved `product_relationships`; top-3 across categories; anonymous display logging | No AI |
-| **5** | Outcome logging | Record outcomes to DB (anonymous), narrow write policy, basic validation | No analytics dashboards |
-| **6 ✅** | Auth | Supabase Auth for associates; associate_profiles + store context; RLS-enforced event identity; DEMO_MODE preserved | — |
-| **7** | AI assist (grounded) | LLM re-ranking / phrasing constrained to approved catalog data; guardrails & evals | Never introduces new facts |
-| **8** | Real data & scanning | Approved catalog import pipeline **(import foundation ✅ delivered — `database/IMPORT.md`)**, camera barcode scanning | — |
-| **9** | Integrations & analytics | POS/inventory & live availability, manager dashboards, A/B testing, i18n, offline sync | — |
-| **10** | Security hardening & deployment | Production RLS/permission review (see checklist below), secrets & env hardening, deploy pipeline | Final phase before launch |
+This is the canonical phase roadmap (single numbering).
 
-### Pre-production security review (required before launch — Phase 10)
+| Phase | Name | Status |
+|------|------|--------|
+| **1** | Project foundation and architecture | ✅ complete |
+| **2** | Database schema and product relationships | ✅ complete |
+| **3** | Product catalogue and approved import workflow | ✅ complete |
+| **4** | Mobile UI, product lookup, and customer needs | ✅ complete |
+| **5** | Rules-based recommendation engine | ✅ complete |
+| **6** | Associate authentication and store context | ✅ complete |
+| **7** | Recommendation outcomes and associate feedback | ▶ **next** |
+| **8** | Inventory and store stock integration | ⏸ paused |
+| **9** | Demo sales guidance layer | available in demo mode |
+| **10** | Performance analytics dashboard | ⏸ paused |
+| **11** | AI Sales Coach | later / future |
+| **12** | Final testing, deployment, security, and governance | future |
+
+> **AI is deferred.** Grounded AI assist, LLM-based copy rephrasing, AI
+> re-ranking, retrieval-augmented generation, and the AI Sales Coach are **later
+> / future** work (Phase 11+). Phases 1–10 contain **no AI**.
+
+> **Note on older references.** A few code comments and migration headers written
+> in earlier phases may still cite a prior working numbering (e.g. "security =
+> Phase 10", "AI = Phase 7"). This table is the source of truth; those legacy
+> comments are cosmetic and are not application logic.
+
+### Pre-production security review (required before launch — Phase 12)
 
 The demo's anonymous read policy is acceptable **only** because it exposes
 synthetic products. Before production, the security & deployment phase must
@@ -175,7 +184,7 @@ invents products or relationships and only **explains** approved ones.
 │  TanStack Query           │        │  • Row Level Security         │
 │  supabase-js client       │        │  • Storage (placeholder imgs) │
 │                           │        │  • Auth (Phase 6+)            │
-│  (browser, mobile-first)  │        │  • Edge Functions (Phase 7+)  │
+│  (browser, mobile-first)  │        │  • Edge Functions (AI, Phase 11+) │
 └──────────────────────────┘        └───────────────────────────────┘
         ▲                                    ▲
         │ build/deploy                       │ migrations / seed / import
@@ -208,7 +217,7 @@ invents products or relationships and only **explains** approved ones.
   outcomes are written through a narrow, validated RLS policy.
 - **CSV import:** `scripts/import-products.ts` parses a sample CSV (papaparse)
   and upserts products/relationships via the service-role key (server-side only).
-- **AI (Phase 7):** runs in a Supabase Edge Function so provider keys never
+- **AI (Phase 11+):** runs in a Supabase Edge Function so provider keys never
   reach the browser; strictly grounded on approved rows.
 
 ---
@@ -351,7 +360,7 @@ images; prices and availability are shown with **explicit demo labels**; the app
 does not present itself as official Skechers or claim any affiliation; no
 customer PII is stored; and no medical/health/unsupported claims are made.
 
-**Production import model (designed now, tooling built in Phase 8).** The schema
+**Production import model (designed now; full real-catalogue tooling is a later phase).** The schema
 is designed so an approved catalogue can later be uploaded via **CSV, Excel,
 JSON, or an authorized API**. Every imported record carries `source`,
 `imported_at`, `region`, `currency`, and `approval_status`, and stays **inactive
@@ -600,7 +609,7 @@ new migration applied.
       `RecommendationsSection` wired into the product page after need selection.
 - [x] Migration `20260806140000_recommendation_events_demo_insert.sql`: narrow,
       PII-free insert policy so the demo can log display events (flagged for the
-      Phase 10 security review).
+      Phase 12 security review).
 - [x] Tests: engine unit tests, list-view state tests, and a Phase 5 acceptance
       flow; the Phase 4 acceptance flow still passes.
 - [x] Browser demo updated (`src/demo/recommendations.ts`) — recommendations now
@@ -616,7 +625,7 @@ new migration applied.
 
 **Phase 6 objective:** Authentication — Supabase Auth for associates; attribute
 recommendation/outcome events to an associate/store; begin tightening the RLS
-policies (per the Phase 10 pre-production security review). No AI.
+policies (per the Phase 12 pre-production security review). No AI.
 
 ---
 
@@ -643,8 +652,10 @@ pass:** typecheck OK, 75 tests (6 new auth), build OK, and DB validation core
       updated (README, SCHEMA, VALIDATION, DECISIONS).
 - [ ] Reviewer approval before starting the next phase.
 
-**Phase 7 objective:** Grounded AI assist — an optional, retrieval-grounded LLM
-layer that re-ranks or rephrases the **approved** recommendation copy (never
-introducing new products, prices, or claims), gated behind a server-side Edge
-Function so no provider key reaches the browser, with guardrails and evals. The
-deterministic engine remains the source of truth.
+**Phase 7 objective:** Recommendation outcomes and associate feedback — let the
+associate record what happened for each recommendation (presented / interested /
+added to basket / declined / unavailable / not relevant) and capture lightweight
+associate feedback, written to `recommendation_events` under the existing
+RLS-enforced, PII-free rules (session associate + store in production, anonymous
+in DEMO_MODE). Deterministic and no AI. *(All AI work — grounded assist, LLM
+rephrasing, re-ranking, RAG, AI Sales Coach — remains later/future, Phase 11+.)*

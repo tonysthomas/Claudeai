@@ -54,7 +54,7 @@ later need server-side rendering or heavy server logic, we add Edge Functions
 **Context:** Product principle: never invent claims. The MVP engine only
 reorders and renders approved rows.
 **Consequences:** Guarantees compliance; requires a curation process (open
-decision). AI in Phase 7 may rephrase but stays grounded on these rows.
+decision). A later AI phase (Phase 11+) may rephrase but stays grounded on these rows.
 **Alternatives:** Runtime LLM generation (rejected for MVP — hallucination risk).
 
 ### ADR-004 — Deterministic, testable recommendation engine (Phase 4)
@@ -77,7 +77,7 @@ world-writable. Service-role key only in server scripts.
 **Decision:** `products.availability_status` is a manually maintained enum.
 **Context:** Brief forbids POS/inventory integration in step one.
 **Consequences:** Simple, but can go stale; flagged as an open decision and a
-risk. Live availability arrives in Phase 9.
+risk. Live availability arrives in Phase 8 (inventory and store stock integration).
 
 ### ADR-007 — Synthetic demo data with explicit demo labeling
 **Decision:** Until an approved catalogue exists, use synthetic product data and
@@ -107,7 +107,7 @@ and `approval_status`.
 **Context:** Catalogue governance requirements; nothing recommended before
 approval.
 **Consequences:** Auditable, reversible imports; more schema up front. The schema
-is created in Phase 2; the full import tooling/UI is built in Phase 8.
+is created in Phase 2; the full real-catalogue import tooling/UI is a later phase.
 **Alternatives:** Direct upsert into `products` (rejected — no validation,
 preview, versioning, or approval gate).
 
@@ -156,7 +156,7 @@ seeding/demo). This is acceptable **only** because the data is synthetic.
 **Context:** Phase 2 has no auth yet (auth is Phase 6); the future read-only
 frontend needs to read demo data.
 **Consequences:** Simple to develop against; **not** production-safe. A
-pre-production security review (Phase 10) MUST review and restrict: anonymous
+pre-production security review (Phase 12) MUST review and restrict: anonymous
 product reads, catalogue import permissions, product approval permissions,
 recommendation-relationship changes, inventory updates, and recommendation-event
 writes. Tracked in `PROJECT_PLAN.md` (Pre-production security review) and
@@ -219,7 +219,7 @@ insert policy (`with check (associate_id is null)`) lets the demo client write
 them; logging is best-effort and never blocks the UI.
 **Context:** The spec requires recording display events without collecting PII,
 while RLS is otherwise default-deny.
-**Consequences:** Anonymous analytics are captured now; the Phase 10 security
+**Consequences:** Anonymous analytics are captured now; the Phase 12 security
 review will tighten who can write events (already on the checklist).
 **Alternatives:** No logging (loses signal); a service-role write from the client
 (rejected — never ship service-role keys to the browser).
@@ -348,7 +348,7 @@ Names only — see `.env.example`. Values never committed.
 | `SUPABASE_SERVICE_ROLE_KEY` | server/scripts only | Import script + admin tasks — **never** shipped to client |
 | `SUPABASE_PROJECT_REF` | server/scripts | CLI / migrations target |
 | `SUPABASE_DB_URL` | server/scripts | Direct DB connection for migrations/import |
-| `ANTHROPIC_API_KEY` *(Phase 7)* | Edge Function only | Grounded AI assist — server-side, never client |
+| `ANTHROPIC_API_KEY` *(Phase 11+)* | Edge Function only | Grounded AI assist — server-side, never client |
 | `VITE_SENTRY_DSN` *(optional)* | browser | Error monitoring |
 
 ---

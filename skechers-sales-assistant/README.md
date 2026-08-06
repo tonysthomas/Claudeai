@@ -33,6 +33,25 @@ recommendation engine, and **associate authentication + store context**
 is preserved for local dev and tests (synthetic associate, no login required).
 No AI or real Skechers data yet.
 
+**Next: Phase 7 — Recommendation outcomes and associate feedback.** All AI work
+(grounded assist, LLM rephrasing, AI re-ranking, retrieval-augmented generation,
+and the AI Sales Coach) is later/future (Phase 11+).
+
+### Roadmap
+
+1. Project foundation and architecture — ✅
+2. Database schema and product relationships — ✅
+3. Product catalogue and approved import workflow — ✅
+4. Mobile UI, product lookup, and customer needs — ✅
+5. Rules-based recommendation engine — ✅
+6. Associate authentication and store context — ✅
+7. Recommendation outcomes and associate feedback — ▶ next
+8. Inventory and store stock integration — paused
+9. Demo sales guidance layer — available in demo mode
+10. Performance analytics dashboard — paused
+11. AI Sales Coach — later / future
+12. Final testing, deployment, security, and governance — future
+
 ### Auth & DEMO_MODE
 
 - With `VITE_DEMO_MODE=true` (default), the app runs as a synthetic demo

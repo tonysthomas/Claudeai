@@ -1,5 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { Layout } from './components/ui/Layout';
+import { LoginPage } from './features/auth/LoginPage';
+import { RequireAuth } from './features/auth/RequireAuth';
 import { SearchPage } from './features/products/SearchPage';
 import { ProductPage } from './features/products/ProductPage';
 
@@ -7,8 +9,23 @@ export function App() {
   return (
     <Layout>
       <Routes>
-        <Route path="/" element={<SearchPage />} />
-        <Route path="/product/:sku" element={<ProductPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/"
+          element={
+            <RequireAuth>
+              <SearchPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/product/:sku"
+          element={
+            <RequireAuth>
+              <ProductPage />
+            </RequireAuth>
+          }
+        />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

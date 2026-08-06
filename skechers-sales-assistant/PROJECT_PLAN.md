@@ -67,7 +67,8 @@ Each phase ends with a review and an explicit approval gate before the next.
 > **2. Data model & seed** → ✅ **3. Catalogue import workflow**
 > (`database/IMPORT.md`) → ✅ **4. Mobile UI shell** (product lookup + detail +
 > customer-need selection) → ✅ **5. Rules-based recommendation engine**
-> (upgrade / alternative / add-on + anonymous display logging) → ▶ **next: auth**.
+> (upgrade / alternative / add-on + anonymous display logging) → ✅ **6. Associate
+> auth & store context** (Supabase Auth, RLS-enforced events) → ▶ **next: grounded AI assist**.
 > The table below lists the thematic work-areas; their numbers are stable
 > references used across the docs/code (e.g. "auth = Phase 6"). Catalogue import
 > delivered the approved-import foundation of the "Real data" area (thematic
@@ -80,7 +81,7 @@ Each phase ends with a review and an explicit approval gate before the next.
 | **3 ✅** | Core UI shell | React + Vite + Tailwind app, routing, product lookup + display, need selection (reads catalogue data) | No recommendation logic |
 | **4 ✅** | Recommendation engine (rules-based) | Deterministic prioritization from approved `product_relationships`; top-3 across categories; anonymous display logging | No AI |
 | **5** | Outcome logging | Record outcomes to DB (anonymous), narrow write policy, basic validation | No analytics dashboards |
-| **6** | Auth | Supabase Auth for associates; attribute outcomes to associate/store | — |
+| **6 ✅** | Auth | Supabase Auth for associates; associate_profiles + store context; RLS-enforced event identity; DEMO_MODE preserved | — |
 | **7** | AI assist (grounded) | LLM re-ranking / phrasing constrained to approved catalog data; guardrails & evals | Never introduces new facts |
 | **8** | Real data & scanning | Approved catalog import pipeline **(import foundation ✅ delivered — `database/IMPORT.md`)**, camera barcode scanning | — |
 | **9** | Integrations & analytics | POS/inventory & live availability, manager dashboards, A/B testing, i18n, offline sync | — |
@@ -616,3 +617,34 @@ new migration applied.
 **Phase 6 objective:** Authentication — Supabase Auth for associates; attribute
 recommendation/outcome events to an associate/store; begin tightening the RLS
 policies (per the Phase 10 pre-production security review). No AI.
+
+---
+
+## 14. Phase 6 status — ✅ COMPLETED (pending reviewer approval)
+
+Phase 6 (Associate authentication & store context) is complete. **All checks
+pass:** typecheck OK, 75 tests (6 new auth), build OK, and DB validation core
+14/14 · import 8/8 · recommendation R1–R5 · **auth/RLS A–H**.
+
+- [x] Supabase email/password auth via `AuthProvider` (session, persistence,
+      loading, error); `LoginPage`; `RequireAuth` route guard; sign-out; header
+      shows associate + store.
+- [x] Migration `20260806150000_associate_auth_and_rls.sql`: `associate_profiles`
+      (+ RLS read-own), portable `app_current_uid()`/`app_demo_mode()` helpers,
+      `current_associate_store()`; replaced the blanket event policy with an
+      **authenticated self+store** insert and a **demo-gated anonymous** insert;
+      no update/delete on events.
+- [x] Seed: demo-mode GUC + one demo associate linked to Demo Store 1.
+- [x] Event logging carries the session associate/store in production, anonymous
+      in DEMO_MODE; the frontend cannot forge `associate_id`/`store_id` (RLS).
+- [x] **DEMO_MODE preserved** — synthetic associate, guard bypass, anonymous
+      events; all Phase 4/5 acceptance tests still pass.
+- [x] `database/tests/auth_rls_validation.sql` (A–H) + `db-validate.sh`; docs
+      updated (README, SCHEMA, VALIDATION, DECISIONS).
+- [ ] Reviewer approval before starting the next phase.
+
+**Phase 7 objective:** Grounded AI assist — an optional, retrieval-grounded LLM
+layer that re-ranks or rephrases the **approved** recommendation copy (never
+introducing new products, prices, or claims), gated behind a server-side Edge
+Function so no provider key reaches the browser, with guardrails and evals. The
+deterministic engine remains the source of truth.

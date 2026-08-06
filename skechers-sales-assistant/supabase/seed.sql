@@ -14,12 +14,21 @@
 truncate table
   public.recommendation_events,
   public.recommendation_approvals,
+  public.associate_profiles,
   public.inventory,
   public.product_relationships,
   public.product_sources,
   public.products,
   public.stores
 restart identity cascade;
+
+-- DEMO ONLY: mark this database as demo mode so anonymous recommendation-event
+-- inserts are permitted (see app_demo_mode()). Never run this seed in production.
+do $$
+begin
+  execute format('alter database %I set app.demo_mode = %L', current_database(), 'true');
+end
+$$;
 
 -- -----------------------------------------------------------------------------
 -- Products: 10 shoes, 5 socks, 3 shoe-care  (source/status use demo defaults)
@@ -165,6 +174,15 @@ where r.relationship_type = 'upgrade_to';
 -- -----------------------------------------------------------------------------
 insert into public.stores (name, location, region)
 values ('Demo Store 1', 'Demo Mall, Demo City', 'DEMO');
+
+-- -----------------------------------------------------------------------------
+-- One synthetic demo associate, connected to the demo store.
+-- auth_user_id is a fixed demo UUID; in real Supabase it is the auth.users id.
+-- -----------------------------------------------------------------------------
+insert into public.associate_profiles
+  (auth_user_id, employee_number, display_name, store_id, role, language)
+select '00000000-0000-0000-0000-000000000001'::uuid, 'DEMO-EMP-001', 'Demo Associate',
+       (select id from public.stores where name = 'Demo Store 1' limit 1), 'associate', 'en';
 
 -- -----------------------------------------------------------------------------
 -- Inventory for the demo store: sizes per category, varied demo availability

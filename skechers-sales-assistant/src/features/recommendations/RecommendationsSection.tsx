@@ -2,12 +2,14 @@
 // list, and logs an anonymous "displayed" event once per result set.
 import { useEffect, useRef } from 'react';
 import { logRecommendationsDisplayed } from '../../lib/recommendations';
+import { useAuth } from '../auth/AuthContext';
 import type { CustomerNeed, Product } from '../../types/db';
 import { useRecommendations } from './hooks';
 import { RecommendationListView, type RecommendationStatus } from './RecommendationListView';
 
 export function RecommendationsSection({ product, need }: { product: Product; need: CustomerNeed }) {
   const query = useRecommendations(product, need);
+  const { isDemo, userId, store } = useAuth();
   const loggedKey = useRef<string | null>(null);
 
   useEffect(() => {
@@ -18,9 +20,13 @@ export function RecommendationsSection({ product, need }: { product: Product; ne
     void logRecommendationsDisplayed({
       selected: product,
       needId: need.id,
+      // In DEMO_MODE events are anonymous; in production they carry the session
+      // associate + assigned store (the frontend cannot forge these — RLS checks them).
+      associateId: isDemo ? null : userId,
+      storeId: isDemo ? null : store?.id ?? null,
       recommendations: query.data.map((r) => ({ relationshipId: r.relationshipId, product: r.product })),
     });
-  }, [query.data, product, need]);
+  }, [query.data, product, need, isDemo, userId, store]);
 
   const status: RecommendationStatus = query.isPending ? 'loading' : query.isError ? 'error' : 'success';
 

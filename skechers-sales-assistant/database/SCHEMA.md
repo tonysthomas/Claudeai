@@ -24,6 +24,7 @@ same normalized model.
 | `catalogue_imports` *(Phase 3)* | One catalogue import batch (source, region, importer, counts, status) |
 | `catalogue_import_rows` *(Phase 3)* | Staged import rows with per-row validation result and planned action |
 | `catalogue_versions` *(Phase 3)* | Product version history created through imports |
+| `associate_profiles` *(Phase 6)* | Store associate identity linked to Supabase auth; assigned store; no PII |
 
 ## Enumerated (CHECK-constrained) values
 
@@ -229,6 +230,33 @@ Product version history from imports. Columns: `id`, `product_id` →
 `product_id`, `import_id`.
 
 All three tables are **RLS default-deny** (admin/back-office only; no anon access).
+
+## Associate auth & store context (Phase 6)
+
+See `DECISIONS.md` ADR-016/017/018. Migration:
+`supabase/migrations/20260806150000_associate_auth_and_rls.sql`.
+
+### `associate_profiles`
+Store associate identity. Columns: `id`, `auth_user_id` (unique; logically links
+to `auth.users(id)`), `employee_number` (unique), `display_name`, `store_id` →
+`stores.id` (set null), `role`, `language`, `active`, `created_at`, `updated_at`
+(trigger). **RLS:** an associate reads only their own row
+(`auth_user_id = app_current_uid()`), or any row in demo mode. No client writes.
+
+### Helper functions
+- `app_current_uid()` — the authenticated user's id from the request JWT `sub`
+  (null when unauthenticated); portable stand-in for `auth.uid()`.
+- `app_demo_mode()` — true only when the DB GUC `app.demo_mode = 'true'` (set by
+  the demo seed; unset in production).
+- `current_associate_store()` — the caller's assigned store (SECURITY DEFINER).
+
+### `recommendation_events` policies (updated)
+- **Authenticated insert:** allowed only when `associate_id = app_current_uid()`
+  **and** `store_id = current_associate_store()` — the client cannot submit an
+  arbitrary associate/store.
+- **Demo insert:** anonymous (`associate_id IS NULL`) rows allowed **only** when
+  `app_demo_mode()` — blocked in production.
+- **No update/delete policies** → associates cannot mutate events.
 
 ## Foreign-key relationships (summary)
 

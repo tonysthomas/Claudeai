@@ -7,6 +7,7 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { App } from '../../src/App';
+import { AuthProvider } from '../../src/features/auth/AuthContext';
 import { SelectionProvider } from '../../src/features/selection/SelectionContext';
 import { demoProduct } from './fixtures';
 
@@ -41,11 +42,13 @@ function renderApp() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter initialEntries={['/']}>
-        <SelectionProvider>
-          <App />
-        </SelectionProvider>
-      </MemoryRouter>
+      <AuthProvider demoMode>
+        <MemoryRouter initialEntries={['/']}>
+          <SelectionProvider>
+            <App />
+          </SelectionProvider>
+        </MemoryRouter>
+      </AuthProvider>
     </QueryClientProvider>,
   );
 }

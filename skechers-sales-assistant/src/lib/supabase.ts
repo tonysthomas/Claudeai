@@ -13,7 +13,7 @@ if (!url || !anonKey) {
 }
 
 export const supabase = createClient(url || 'http://localhost:54321', anonKey || 'public-anon-demo-key', {
-  auth: { persistSession: false },
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
 });
 
 export const isSupabaseConfigured = Boolean(url && anonKey);

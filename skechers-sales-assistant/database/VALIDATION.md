@@ -25,6 +25,17 @@ Validation runs against a **local** database only — never production.
 | 13 | Priority must be greater than zero |
 | 14 | Barcode is unique when present |
 
+**Recommendation coverage** (`recommendation_validation.sql`): R1 no self-refs ·
+R2 no duplicate edges · R3 ≥5 shoes slottable · R4 five named products fully
+covered with distinct slot targets · R5 all demo-region/approved.
+
+**Authentication / RLS** (`auth_rls_validation.sql`, run as a non-superuser role
+with a simulated JWT + demo GUC): A anonymous insert allowed in demo mode · B
+blocked in production · C authenticated self+store insert allowed · D arbitrary
+`associate_id` rejected · E arbitrary `store_id` rejected · F associates cannot
+update/delete events · G cannot write products/relationships/approvals/catalogue ·
+H associate can read own profile.
+
 Positive checks assert expected data; negative checks attempt an invalid insert
 inside a sub-transaction and confirm the database **rejects** it.
 

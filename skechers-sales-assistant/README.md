@@ -26,11 +26,23 @@ database that is the single runtime source of truth. See `PROJECT_PLAN.md` §3a.
 
 ## Status
 
-**Phases 1–5 complete.** Planning & setup, database foundation (8 tables +
-synthetic seed), catalogue-import workflow, the mobile UI shell (product
-search/detail + customer-need selection), and the **rules-based recommendation
-engine** (deterministic upgrade / alternative / add-on with anonymous display
-logging). No AI, auth, or real Skechers data yet.
+**Phases 1–6 complete.** Planning & setup, database foundation (8 tables +
+synthetic seed), catalogue-import workflow, the mobile UI shell, the rules-based
+recommendation engine, and **associate authentication + store context**
+(Supabase Auth, `associate_profiles`, RLS-enforced event identity). **DEMO_MODE**
+is preserved for local dev and tests (synthetic associate, no login required).
+No AI or real Skechers data yet.
+
+### Auth & DEMO_MODE
+
+- With `VITE_DEMO_MODE=true` (default), the app runs as a synthetic demo
+  associate — **no login required** — and recommendation events are anonymous.
+  This keeps local dev and the automated tests working offline.
+- With `VITE_DEMO_MODE=false` (production), routes are protected: associates sign
+  in with Supabase email/password, and recommendation events carry the session
+  associate + assigned store (the client cannot forge them — RLS enforces it).
+- **Never** put the Supabase **service-role** key in the frontend; only
+  `VITE_SUPABASE_ANON_KEY` is used client-side.
 
 Start here:
 

@@ -70,21 +70,29 @@ export async function getRecommendationCandidates(product: Product): Promise<Rec
 }
 
 /**
- * Record that recommendations were displayed. Anonymous: no associate/customer
- * identity. Best-effort — never blocks or breaks the UI on a logging failure.
+ * Record that recommendations were displayed. No customer PII. In production the
+ * `associateId`/`storeId` come from the authenticated session/profile (RLS
+ * enforces they match the caller); in DEMO_MODE they are null (anonymous, only
+ * allowed while the database is in demo mode). Best-effort — never blocks the UI.
  */
 export async function logRecommendationsDisplayed(params: {
   selected: Product;
   needId: string | null;
+  associateId: string | null;
+  storeId: string | null;
   recommendations: Array<{ relationshipId: string; product: Product }>;
 }): Promise<void> {
   if (params.recommendations.length === 0) return;
   const needId = params.needId && UUID_RE.test(params.needId) ? params.needId : null;
+  const associateId = params.associateId && UUID_RE.test(params.associateId) ? params.associateId : null;
+  const storeId = params.storeId && UUID_RE.test(params.storeId) ? params.storeId : null;
   const rows = params.recommendations.map((r) => ({
     selected_product_id: params.selected.id,
     recommended_product_id: r.product.id,
     relationship_id: r.relationshipId,
     customer_need_id: needId,
+    associate_id: associateId,
+    store_id: storeId,
     action: 'displayed' as const,
     sale_completed: false,
   }));

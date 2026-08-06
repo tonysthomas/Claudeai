@@ -8,6 +8,7 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { App } from '../../src/App';
+import { AuthProvider } from '../../src/features/auth/AuthContext';
 import { SelectionProvider } from '../../src/features/selection/SelectionContext';
 import { logRecommendationsDisplayed } from '../../src/lib/recommendations';
 import type { RecommendationCandidate, RelationshipType } from '../../src/features/recommendations/types';
@@ -54,9 +55,11 @@ function renderApp() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter initialEntries={['/']}>
-        <SelectionProvider><App /></SelectionProvider>
-      </MemoryRouter>
+      <AuthProvider demoMode>
+        <MemoryRouter initialEntries={['/']}>
+          <SelectionProvider><App /></SelectionProvider>
+        </MemoryRouter>
+      </AuthProvider>
     </QueryClientProvider>,
   );
 }
@@ -91,6 +94,8 @@ describe('Phase 5 acceptance flow', () => {
     await waitFor(() => expect(logRecommendationsDisplayed).toHaveBeenCalledTimes(1));
     expect(vi.mocked(logRecommendationsDisplayed).mock.calls[0]![0]).toMatchObject({
       selected: expect.objectContaining({ sku: 'SHOE-WALK-001' }),
+      associateId: null, // DEMO_MODE logs anonymously
+      storeId: null,
     });
   });
 });

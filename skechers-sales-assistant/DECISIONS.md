@@ -224,6 +224,46 @@ review will tighten who can write events (already on the checklist).
 **Alternatives:** No logging (loses signal); a service-role write from the client
 (rejected — never ship service-role keys to the browser).
 
+### ADR-016 — Associate auth with a DEMO_MODE bypass (Phase 6)
+**Decision:** Use Supabase email/password auth. An `AuthProvider` tracks the
+session and loads the associate's `associate_profiles` row + store. In
+**DEMO_MODE** (default locally and in tests) it provides a synthetic
+authenticated associate **without** calling Supabase, so the app and the Phase
+4/5 acceptance tests run offline; the `RequireAuth` guard bypasses. In
+production, routes are protected and unauthenticated users are redirected to
+`/login`.
+**Context:** The spec requires real auth while preserving DEMO_MODE for local dev
+and automated tests.
+**Consequences:** Tests need no Supabase; production is gated. `demoMode` is an
+overridable prop so tests can exercise the production path too.
+**Alternatives:** Requiring login even in tests (brittle, needs a live backend).
+
+### ADR-017 — Event identity enforced by RLS; demo events gated by a DB GUC
+**Decision:** `recommendation_events` inserts are governed by two policies: an
+**authenticated** policy allowing a row only when `associate_id = app_current_uid()`
+and `store_id = current_associate_store()` (the frontend cannot forge either),
+and a **demo** policy allowing anonymous (`associate_id IS NULL`) rows only when
+`app_demo_mode()` is true. `app_current_uid()` reads the JWT `sub`;
+`app_demo_mode()` reads the `app.demo_mode` GUC (set by the demo seed only). No
+update/delete policies exist, so associates cannot mutate events.
+**Context:** "associate_id/store_id come from the session, cannot be arbitrary;
+anonymous inserts only in DEMO_MODE, blocked in production."
+**Consequences:** Enforcement is in the database, not just the client; portable
+(GUC-based, no hard dependency on the Supabase `auth` schema) so it validates on
+plain Postgres. Production simply never sets `app.demo_mode`.
+**Alternatives:** Client-only checks (bypassable); `auth.uid()` directly (ties
+the migration to the Supabase auth schema, breaking vanilla-PG validation).
+
+### ADR-018 — associate_profiles.auth_user_id is a logical link (no hard FK)
+**Decision:** `associate_profiles.auth_user_id` is a unique uuid logically linked
+to `auth.users(id)`, without a hard FK.
+**Context:** Demo seeding has no real auth user; a hard FK to `auth.users` would
+block seeding and vanilla-PG validation.
+**Consequences:** Demo data seeds anywhere; production provisions the profile
+from the real auth user id. A hard FK (or an `on auth.users` trigger) can be
+added in a Supabase-only migration later.
+**Alternatives:** Hard FK now (breaks demo/validation).
+
 ---
 
 ## 3. Project folder structure (proposed)

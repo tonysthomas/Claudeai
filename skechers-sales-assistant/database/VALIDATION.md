@@ -43,13 +43,34 @@ supabase db reset       # applies migrations + seed.sql to the LOCAL db
 (`postgresql://postgres:postgres@127.0.0.1:54322/postgres`). Override with
 `DATABASE_URL=... ./scripts/db-validate.sh` to target another **local** database.
 
-### Option B — Local PostgreSQL (used for this run)
+### Option B — Direct against the Supabase Postgres image (also used for this run)
 
-The Supabase CLI was not available in the validation environment, so the schema
-was validated against a local **PostgreSQL 16** cluster (the same engine
-Supabase runs). The migration is portable: Supabase-only role grants
-(`anon`/`authenticated`) are applied only if those roles exist, so it runs
-cleanly on both.
+The schema, seed, and all 14 checks were additionally validated against the
+**official Supabase Postgres image** (`public.ecr.aws/supabase/postgres:15.8.1.085`,
+the exact image `supabase start` uses), run directly via Docker. Because that
+image has the `anon`/`authenticated` roles, the Supabase-specific grant/RLS path
+executed and was confirmed:
+
+- RLS enabled on all **8/8** tables; **6** read policies present.
+- `anon` has `SELECT` on `products` (portable grant block ran).
+- An `anon`-role read returns all **18** demo products (RLS + policy + grant).
+
+### Option C — Local PostgreSQL
+
+Also validated against a local **PostgreSQL 16** cluster. The migration is
+portable: Supabase-only role grants (`anon`/`authenticated`) are applied only if
+those roles exist, so it runs cleanly on plain Postgres and on Supabase alike.
+
+### Note on the full `supabase start` stack
+
+`supabase start` successfully pulls the images and applies the migration + seed
+to Supabase Postgres, but the **full local stack cannot finish booting in this
+sandbox**: an auxiliary service container fails with
+`error setting rlimit type 7 (NOFILE): operation not permitted` because the
+sandbox caps file-descriptor limits (hard limit 20000) and the container isn't
+permitted to raise them. This is an environment limitation, not a schema issue —
+the database layer itself is fully validated (above). In an unrestricted
+environment, `supabase start` + `supabase db reset` run normally.
 
 ```bash
 # spin up a throwaway local cluster, apply migration + seed, run validation.sql

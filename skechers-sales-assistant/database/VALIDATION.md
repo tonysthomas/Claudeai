@@ -90,16 +90,18 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/seed.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/tests/validation.sql
 ```
 
-## Latest results — ✅ all passed (PostgreSQL 16)
+## Latest results — ✅ all passed (PostgreSQL 16, Phase 12 full-suite run)
+
+All four suites were applied over the four migrations + seed and passed:
 
 ```
-=== APPLY MIGRATION ===  migration: OK
-=== LOAD SEED ===        seed: OK
-=== VALIDATION TESTS ===
+==> applying migrations (in order): core → catalogue-import → events-demo-insert → auth+rls
+==> loading seed
+==> core validation (validation.sql)
 PASS 1: all 8 core tables exist
-PASS 2: seed counts correct (18 products, 27 relationships, ...)
+PASS 2: seed counts correct (21 products, 48 relationships, ...)
 PASS 3: products queryable by SKU
-PASS 4: 5 recommendations queryable for SHOE-WALK-001
+PASS 4: 7 recommendations queryable for SHOE-WALK-001
 PASS 5: duplicate SKU rejected
 PASS 6: self-referencing relationship rejected
 PASS 7: invalid relationship_type rejected
@@ -111,18 +113,27 @@ PASS 12: official data-source fields present on products & product_sources
 PASS 13: priority must be > 0 (zero rejected)
 PASS 14: duplicate barcode rejected (unique when present)
 ================= ALL VALIDATIONS PASSED =================
-VALIDATION EXIT: 0
+==> catalogue-import validation (import_validation.sql): PASS I1–I8
+==> recommendation validation (recommendation_validation.sql): PASS R1–R5
+==> authentication / RLS validation (auth_rls_validation.sql): PASS A–H (incl. G1–G4)
+==> OK: all validations passed
 ```
+
+The auth/RLS suite runs as a **non-superuser** role with a simulated JWT + demo
+GUC and confirms, among others: **B** anonymous insert **blocked in production**
+(GUC unset), **D/E** identity forgery rejected, **F** events are append-only, and
+**G1–G4** clients cannot write products/relationships/approvals/catalogue.
 
 ## Seed-data counts
 
 | Entity | Count |
 |--------|------:|
-| products (10 shoes / 5 socks / 3 shoe-care) | 18 |
-| product_sources | 18 |
-| product_relationships | 27 |
-| recommendation_approvals | 3 |
+| products (13 shoes / 5 socks / 3 shoe-care) | 21 |
+| product_sources | 21 |
+| product_relationships | 48 |
+| recommendation_approvals | 6 |
 | customer_needs | 9 |
 | stores | 1 |
-| inventory | 53 |
+| inventory | (per store/size, demo) |
 | recommendation_events | 5 |
+| associate_profiles | 1 (demo associate) |

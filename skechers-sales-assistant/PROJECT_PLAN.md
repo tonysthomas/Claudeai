@@ -70,9 +70,11 @@ Each phase ends with a review and an explicit approval gate before the next.
 > Recommendation outcomes & associate feedback** → ✅ **9. Demo sales guidance
 > layer** (demo mode only) → ✅ **10. Performance analytics dashboard** (demo mode
 > only) → ✅ **11. AI Sales Coach & grounded LLM integration layer** (demo mode
-> only — local mock provider). Remaining: Phase 8 (inventory) is **paused**;
-> Phase 12 (final / deployment / security) is **future**. In production the AI
-> path is not wired — the service falls back to the Phase 9 approved templates.
+> only — local mock provider) → ✅ **12. Final security audit, testing,
+> deployment & governance** (`database/GOVERNANCE.md`; go-live gated by the
+> production pre-flight checklist). Remaining: Phase 8 (inventory) is **paused**.
+> In production the AI path is not wired — the service falls back to the Phase 9
+> approved templates.
 
 This is the canonical phase roadmap (single numbering).
 
@@ -89,7 +91,7 @@ This is the canonical phase roadmap (single numbering).
 | **9** | Demo sales guidance layer | ✅ complete (demo mode) |
 | **10** | Performance analytics dashboard | ✅ complete (demo mode) |
 | **11** | AI Sales Coach & grounded LLM integration layer | ✅ complete (demo mode) |
-| **12** | Final testing, deployment, security, and governance | future |
+| **12** | Final testing, deployment, security, and governance | ✅ complete (audit + governance; go-live gated by pre-flight) |
 
 > **AI is introduced in Phase 11, demo-only and strictly grounded.** Phases 1–10
 > contain **no AI**. Phase 11 adds an **AI Sales Coach** that runs against a
@@ -106,24 +108,35 @@ This is the canonical phase roadmap (single numbering).
 > Phase 10", "AI = Phase 7"). This table is the source of truth; those legacy
 > comments are cosmetic and are not application logic.
 
-### Pre-production security review (required before launch — Phase 12)
+### Pre-production security review (Phase 12 — audited)
 
 The demo's anonymous read policy is acceptable **only** because it exposes
-synthetic products. Before production, the security & deployment phase must
-review and restrict:
+synthetic products. Phase 12 audited each item below; the full write-up, the
+production pre-flight checklist, and ready-to-apply SQL are in
+**`database/GOVERNANCE.md`** + **`database/production_hardening.sql`**.
 
-- [ ] **Who can view products** — scope/limit what unauthenticated clients see
-      (current demo allows anonymous reads of synthetic data only).
-- [ ] **Who can upload catalogues** — restrict catalogue-import permissions.
-- [ ] **Who can approve products** — restrict product-approval permissions.
-- [ ] **Who can modify relationships** — restrict recommendation-edge create/update.
-- [ ] **Inventory updates** — restrict who can write inventory.
-- [ ] **Who can write recommendation events** — narrow, validated insert policy only.
-- [ ] **Catalogue image storage vs. URL reference** — decide whether images are
-      stored (e.g. Supabase Storage) or referenced by URL, with the security,
-      privacy, licensing, and availability implications of each.
+- [x] **Who can view products** — reviewed. Demo allows anonymous reads of
+      synthetic data only; production locks catalogue reads to authenticated
+      (hardening script swaps `*_read_all` → `*_read_authed`, revokes anon
+      grants; **tested**: an unauthenticated read returns 0 rows post-hardening).
+- [x] **Who can upload catalogues** — reviewed. Catalogue-import tables have **no
+      client write policy** (default-deny); server/admin role only. Verified by
+      auth/RLS check G4.
+- [x] **Who can approve products** — reviewed. `recommendation_approvals` has no
+      client write policy (check G3). Server/admin role only.
+- [x] **Who can modify relationships** — reviewed. `product_relationships` writes
+      denied to clients (check G2). Server/admin role only.
+- [x] **Inventory updates** — reviewed. No client write policy (default-deny).
+- [x] **Who can write recommendation events** — reviewed. Authenticated: own id +
+      assigned store only (checks C–E); anonymous: demo-GUC-gated and PII-free,
+      **blocked in production** (check B). Append-only (no update/delete, check F).
+- [x] **Catalogue image storage vs. URL reference** — documented as a go-live
+      decision with security/privacy/licensing/availability trade-offs
+      (`GOVERNANCE.md` §5); production access control applied to the chosen option.
 
-(Not a blocker for Phase 3; tracked here so it is not lost.)
+Remaining go-live actions are tracked as the **Production Pre-flight Checklist**
+in `database/GOVERNANCE.md` (seed lockout, apply hardening migration, auth.users
+linkage, env-var lockdown, HTTPS/CSP, staging re-validation, governance sign-off).
 
 ### Data-source roadmap (future, permission-gated)
 
@@ -816,6 +829,46 @@ validations unchanged and green.
 - [x] Docs updated (this file, README, DECISIONS ADR-022).
 - [ ] Reviewer approval.
 
-**Remaining phases:** Phase 8 (inventory) is **paused**; Phase 12 (final testing /
-deployment / security / governance) is **future**. Real LLM providers, RAG, and
-AI re-ranking plug in behind the same `CoachProvider` seam.
+**Remaining phases:** Phase 8 (inventory) is **paused**. Real LLM providers, RAG,
+and AI re-ranking plug in behind the same `CoachProvider` seam.
+
+---
+
+## 19. Phase 12 status — ✅ COMPLETED (security audit + governance; pending reviewer approval)
+
+Phase 12 (Final security, testing, deployment & governance) is complete. The
+system is **demo-ready and fully validated**; production go-live is gated by the
+pre-flight checklist in `database/GOVERNANCE.md`. **All checks pass:** typecheck
+OK, 125 app tests, build OK, and the **full DB validation suite green** (14 core +
+8 import + 5 recommendation + 11 auth/RLS).
+
+- [x] **Security audit** — RLS enabled default-deny on every table; catalogue
+      reads are demo-only public (synthetic), all sensitive writes are
+      server/admin-role only, events are append-only and identity-forgery-proof.
+      Verified by `auth_rls_validation.sql` (A–H).
+- [x] **DEMO bypass bounded on two layers** — frontend `VITE_DEMO_MODE` (compile
+      time) and the DB `app.demo_mode` GUC (set only by the demo seed). Auth/RLS
+      check **B** proves anonymous inserts are **blocked in production** (GUC
+      unset). Confirmed a fresh production-style DB has the GUC unset and
+      unauthenticated catalogue reads return **0 rows** after hardening.
+- [x] **Env-var boundary** — audited: the only `import.meta.env` reads in `src/`
+      are `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_DEMO_MODE`; **no
+      service-role key anywhere in `src/`**; `.env` is git-ignored and untracked.
+- [x] **Production hardening template** — `database/production_hardening.sql`
+      (kept outside `supabase/migrations/` so it never auto-applies): locks
+      catalogue reads to authenticated, revokes anon grants, drops the demo insert
+      policy, resets the demo GUC, and templates the `auth.users` FK/trigger
+      options. Catalogue-lock + GUC-reset were applied and **tested** on a local
+      cluster.
+- [x] **Governance documentation** — `database/GOVERNANCE.md`: AI & data
+      governance (approved-only, grounded, no hallucinated specs/claims), data
+      privacy (zero customer PII across all logs), environment configuration
+      (dev/staging/prod), current security posture, and the production pre-flight
+      checklist.
+- [x] Docs updated (this file, README, `database/GOVERNANCE.md`).
+- [ ] Reviewer approval; then execute the production pre-flight checklist for
+      go-live with authorized data.
+
+**Remaining phases:** Phase 8 (inventory and store stock integration) is
+**paused** — the only unbuilt roadmap item. All core MVP + demo phases (1–7, 9–12)
+are complete.

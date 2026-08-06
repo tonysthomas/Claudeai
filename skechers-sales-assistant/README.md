@@ -45,8 +45,19 @@ The coach runs on a **local mock LLM in DEMO_MODE** (no external
 API calls, no customer PII), is **grounded strictly in approved data**, is filtered
 by medical-claim + grounding guardrails, and **falls back to the Phase 9 approved
 templates** on any failure — and always in production, where no LLM is wired.
-Remaining: Phase 8 (inventory) is paused; real LLM providers / RAG / AI re-ranking
-are future work behind the same service seam (Phase 12+).
+
+**Phase 12 complete — security audit & governance.** RLS is default-deny on every
+table and validated end-to-end (14 core + 8 import + 5 recommendation + 11
+auth/RLS DB checks); the DEMO bypass is bounded on two layers (the `VITE_DEMO_MODE`
+build flag and the `app.demo_mode` DB GUC) and **proven blocked in production**;
+the client ships **only** the public anon key (no service-role key anywhere in
+`src/`). Governance, the environment matrix, and a **production pre-flight
+checklist** are in [`database/GOVERNANCE.md`](./database/GOVERNANCE.md), with a
+reviewed, tested hardening template in
+[`database/production_hardening.sql`](./database/production_hardening.sql). The app
+is **demo-ready and validated**; production go-live with authorized data is gated
+by that checklist. Remaining: Phase 8 (inventory) is paused; real LLM providers /
+RAG / AI re-ranking are future work behind the same service seam.
 
 ### Roadmap
 
@@ -61,7 +72,7 @@ are future work behind the same service seam (Phase 12+).
 9. Demo sales guidance layer — ✅ (demo mode only)
 10. Performance analytics dashboard — ✅ (demo mode only)
 11. AI Sales Coach & grounded LLM integration layer — ✅ (demo mode only)
-12. Final testing, deployment, security, and governance — future
+12. Final testing, deployment, security, and governance — ✅ (audit + governance; go-live gated by pre-flight)
 
 ### Auth & DEMO_MODE
 
@@ -83,6 +94,9 @@ Start here:
   decisions, and definition of done.
 - [`DECISIONS.md`](./DECISIONS.md) — technology stack rationale and
   architectural decisions with alternatives considered.
+- [`database/GOVERNANCE.md`](./database/GOVERNANCE.md) — AI & data governance,
+  data-privacy rules, environment matrix, security posture, and the production
+  pre-flight checklist.
 - [`.env.example`](./.env.example) — environment variables that will eventually
   be required (names only).
 

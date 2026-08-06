@@ -283,7 +283,8 @@ Step 1 is complete when:
 - [x] Eventual environment variables are documented (`.env.example`).
 - [x] Project `.gitignore` protects secrets and build artifacts.
 - [x] MVP and non-MVP boundaries are explicit.
-- [ ] Changes committed and pushed to `claude/skechers-sales-assistant-d3jch5`.
-- [ ] **No** app code, recommendation engine, full UI, auth, AI calls, or real
+- [x] Changes committed and pushed to `claude/skechers-sales-assistant-d3jch5`.
+- [x] **No** app code, recommendation engine, full UI, auth, AI calls, or real
       Skechers data added.
-- [ ] Reviewer approval obtained before starting Phase 2.
+- [ ] Reviewer approval obtained before starting Phase 2. ← **only item pending
+      (yours to give)**

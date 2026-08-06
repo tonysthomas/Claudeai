@@ -79,6 +79,34 @@ world-writable. Service-role key only in server scripts.
 **Consequences:** Simple, but can go stale; flagged as an open decision and a
 risk. Live availability arrives in Phase 9.
 
+### ADR-007 — Synthetic demo data with explicit demo labeling
+**Decision:** Until an approved catalogue exists, use synthetic product data and
+placeholder images. Flag records `is_demo` and render prices/availability with
+explicit demo labels. The app never presents itself as official Skechers, claims
+no affiliation/endorsement, stores no customer PII, and makes no
+medical/health/unsupported claims. The public website is reference-only — no
+scraping, crawling, bulk-download, copying, or redistribution.
+**Context:** Product data source policy; legal/brand safety while prototyping.
+**Consequences:** Safe to demo; a `VITE_DEMO_MODE` flag drives the labeling.
+**Alternatives:** Using website data directly (rejected — not authorized, not a
+production source).
+
+### ADR-008 — Staged, versioned, approval-gated import pipeline
+**Decision:** Design the production data model for an upload path via CSV, Excel,
+JSON, or an authorized API. Imports land in `import_batches` +
+`product_import_rows` (raw), are validated (required fields, duplicate SKUs,
+price, image URL, category against `product_categories`), shown as a **preview
+with a per-row error report**, and only then committed to `products` — writing a
+`product_versions` history entry. Products stay inactive until **manual
+approval**. Every record carries `source`, `import_date`, `region`, `currency`,
+and `approval_status`.
+**Context:** Catalogue governance requirements; nothing recommended before
+approval.
+**Consequences:** Auditable, reversible imports; more schema up front. The schema
+is created in Phase 2; the full import tooling/UI is built in Phase 8.
+**Alternatives:** Direct upsert into `products` (rejected — no validation,
+preview, versioning, or approval gate).
+
 ---
 
 ## 3. Project folder structure (proposed)
@@ -159,6 +187,7 @@ Names only — see `.env.example`. Values never committed.
 | `VITE_SUPABASE_URL` | browser | Supabase project URL |
 | `VITE_SUPABASE_ANON_KEY` | browser | Public anon key (RLS-guarded) |
 | `VITE_APP_ENV` | browser | `development` / `production` flag |
+| `VITE_DEMO_MODE` | browser | When true, render demo labels on prices/availability (synthetic data) |
 | `SUPABASE_SERVICE_ROLE_KEY` | server/scripts only | Import script + admin tasks — **never** shipped to client |
 | `SUPABASE_PROJECT_REF` | server/scripts | CLI / migrations target |
 | `SUPABASE_DB_URL` | server/scripts | Direct DB connection for migrations/import |
@@ -210,7 +239,7 @@ pnpm import:products -- src/data/sample-products.csv   # CSV import
 - **AI grounding (future):** must be rigorously constrained to avoid inventing
   claims.
 
-**Open questions** (also in `PROJECT_PLAN.md` §7)
+**Open questions** (also in `PROJECT_PLAN.md` §8)
 1. Recommendation mix policy: fixed category slots vs. pure priority?
 2. Availability ownership & acceptable staleness?
 3. Any associate/store attribution in MVP outcomes, or fully anonymous?

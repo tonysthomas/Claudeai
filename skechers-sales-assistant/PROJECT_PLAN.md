@@ -120,10 +120,14 @@ Detailed columns are defined at build time (Phase 2). Entities and relationships
 
 | Entity | Purpose | Key fields (indicative) | Relationships |
 |--------|---------|-------------------------|---------------|
-| `products` | Approved catalog | `id`, `product_code` (unique), `name`, `category`, `type`, `gender`, `price`, `currency`, `description`, `image_url`, `availability_status`, `is_active` | 1—* relationships & rules; referenced by outcomes |
+| `products` | Approved catalog | `id`, `product_code`/SKU (unique), `name`, `category_id`, `type`, `gender`, `price`, `currency`, `description`, `image_url`, `availability_status`, `is_active`, `is_demo`, **`source`, `import_date`, `region`, `approval_status`** | 1—* relationships & rules; referenced by outcomes; has version history |
+| `product_categories` | Controlled category list (enables category validation) | `id`, `code`, `label`, `is_active` | referenced by products |
 | `customer_needs` | The 9 approved needs | `id`, `code`, `label`, `description` | referenced by rules & outcomes |
 | `product_relationships` | Typed links between products | `id`, `from_product_id`, `to_product_id`, `relationship_type`, `priority` | self-ref many-to-many on `products` |
 | `recommendation_rules` | Maps (product + need) → recommended product with approved copy | `id`, `source_product_id`, `need_id`, `recommended_product_id`, `recommendation_type`, `reason`, `customer_benefit`, `selling_sentence`, `priority`, `is_active` | joins `products` × `customer_needs` |
+| `import_batches` | One upload/ingest event | `id`, `source`, `file_name`, `format` (csv/xlsx/json/api), `region`, `currency`, `status` (previewed/validated/committed/failed), `row_counts`, `error_summary`, `imported_by`, `imported_at` | 1—* staged rows |
+| `product_import_rows` | Staged raw rows pending validation/approval | `id`, `batch_id`, `raw_data` (jsonb), `validation_status`, `validation_errors` (jsonb), `resolved_product_id?` | belongs to a batch; may become a product |
+| `product_versions` | Version history of product records | `id`, `product_id`, `version_number`, `snapshot` (jsonb), `approval_status`, `changed_by`, `changed_at`, `change_reason` | *—1 products |
 | `outcomes` | Anonymous result log | `id`, `source_product_id`, `need_id`, `recommended_product_id`, `recommendation_type`, `outcome`, `associate_id?`, `store_id?`, `created_at` | references products/needs; **no customer PII** |
 | `associates` *(Phase 6)* | Login identity | `id`, `display_name`, `store_id`, `role` | referenced by outcomes |
 | `stores` *(Phase 6)* | Store context | `id`, `name`, `region` | referenced by associates/outcomes |
@@ -139,10 +143,90 @@ Detailed columns are defined at build time (Phase 2). Entities and relationships
   (static field in MVP — no live inventory).
 - `outcome`: `presented`, `interested`, `added_to_basket`, `declined`,
   `unavailable`, `not_relevant`.
+- `approval_status`: `draft`, `pending_review`, `approved`, `rejected`,
+  `archived`.
+- `import_status`: `previewed`, `validated`, `committed`, `failed`.
 
 ---
 
-## 6. Recommendation logic outline (Phase 4 — rules-based, no AI)
+## 6. Product data source & catalogue governance
+
+**Prototype data policy.** The public Skechers website is a **reference only**
+(categories, naming, features, technologies, relationships). No scraping,
+crawling, bulk-downloading, copying, or redistribution without explicit
+authorization, and website data is never the production database. Until an
+approved catalogue exists we use **synthetic** sample data and placeholder
+images; prices and availability are shown with **explicit demo labels**; the app
+does not present itself as official Skechers or claim any affiliation; no
+customer PII is stored; and no medical/health/unsupported claims are made.
+
+**Production import model (designed now, tooling built in Phase 8).** The schema
+is designed so an approved catalogue can later be uploaded via **CSV, Excel,
+JSON, or an authorized API**. Every imported record carries `source`,
+`import_date`, `region`, `currency`, and `approval_status`, and stays **inactive
+until manually approved**. The import path is staged, not direct-to-live:
+
+```
+Upload (CSV/XLSX/JSON/API)
+   → parse into import_batches + product_import_rows (raw)
+   → VALIDATE each row:
+        • required-field validation
+        • duplicate-SKU detection (within batch and vs. existing catalog)
+        • price validation (numeric, currency, sane range)
+        • image-URL validation (well-formed, reachable/allowed host)
+        • category validation (against product_categories)
+   → PREVIEW: show valid rows, warnings, and a per-row ERROR REPORT
+   → on approve: COMMIT to products + write product_versions (version history)
+   → products become active only after manual APPROVAL
+```
+
+Nothing is committed before preview; nothing is recommended before approval.
+
+### Product data roadmap
+
+1. **Prototype stage (now).** Synthetic sample data and placeholder images. The
+   purpose is to test the workflow, database structure, recommendation logic,
+   and UX — not to hold real products.
+2. **Reference research stage.** Review the public Skechers website *only* to
+   understand categories, product attributes, naming patterns, technologies, and
+   possible recommendation relationships. This stage **does not** create a
+   production catalogue.
+3. **Approved catalogue stage.** After the required approval is obtained, support
+   catalogue upload via CSV, Excel, JSON, or an authorized integration, through
+   the staged/validated/versioned pipeline above.
+
+### Production catalogue fields (target schema for the approved stage)
+
+The `products` model (and the importer's accepted columns) is designed to hold:
+
+| Field | Notes |
+|-------|-------|
+| SKU | Unique product code; duplicate-checked on import |
+| Barcode | Scannable identifier (enables the future scan flow) |
+| Style number | Manufacturer style reference |
+| Product name | Display name |
+| Category / Subcategory | Validated against `product_categories` |
+| Gender | e.g. men / women / kids / unisex |
+| Color | Colorway |
+| Size range | Available sizes |
+| Price + Currency | Numeric price; ISO currency; demo-labeled until approved |
+| Region | Market the record applies to |
+| Product image | Image URL; format/host validated on import |
+| Product description | Long description |
+| Key features | Structured feature list |
+| Technology | Named Skechers technologies (approved data only) |
+| Activity | Best-for activity (feeds `best_for_activity`) |
+| Inventory status | Maps to `availability_status`; demo-labeled until live |
+| Approval status | `draft` → `pending_review` → `approved` (gates activation) |
+| Source | Origin of the record (file/integration) |
+| Import date | When the record was ingested |
+
+Prototype records populate a synthetic subset of these fields; the full set is
+required only at the approved-catalogue stage.
+
+---
+
+## 7. Recommendation logic outline (Phase 4 — rules-based, no AI)
 
 Input: a **source product** + a **selected need**.
 
@@ -166,7 +250,7 @@ returns fewer and says so — it never pads with invented items.
 
 ---
 
-## 7. Open decisions
+## 8. Open decisions
 
 Tracked here and mirrored in `DECISIONS.md` (see "Open questions"):
 
@@ -186,7 +270,7 @@ Tracked here and mirrored in `DECISIONS.md` (see "Open questions"):
 
 ---
 
-## 8. Definition of done (Step 1)
+## 9. Definition of done (Step 1)
 
 Step 1 is complete when:
 

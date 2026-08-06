@@ -43,6 +43,24 @@ Business goals it serves:
    to approved catalog data (retrieval-grounded). It may reorder or phrase, but
    must never introduce facts not present in the approved data.
 
+### Product data source policy
+
+- The public Skechers website may be used **only as a reference** for
+  understanding categories, naming conventions, features, technologies, and
+  possible product relationships.
+- **Do not** scrape, crawl, bulk-download, copy, or redistribute Skechers
+  website content without explicit authorization. Website data is **never** the
+  production database.
+- Until an approved catalogue exists:
+  - Use **synthetic** sample product data only.
+  - Use placeholder images or approved development assets only.
+  - **Label all prices as demo prices** and **all availability as demo
+    availability** in the UI.
+  - Do **not** make the app look like an official Skechers application, and do
+    **not** claim affiliation, authorization, or endorsement by Skechers.
+  - Do **not** store personal customer information.
+  - Do **not** make medical, health, or otherwise unsupported product claims.
+
 ---
 
 ## MVP scope (Phase 1)
@@ -138,6 +156,25 @@ Do **not** build these until their phase is approved:
   tables (see `PROJECT_PLAN.md`).
 - Approved-content fields (reason, benefit, selling_sentence) are stored data,
   reviewed before use — the app renders them, it does not author them.
+
+### Catalogue governance rules
+
+The production data model must let an approved catalogue be uploaded later via
+CSV, Excel, JSON, or an authorized API. Design for this now (schema), even
+though the full import tooling is a later phase.
+
+- **Provenance is mandatory.** Every imported product record must carry:
+  `source`, `import_date`, `region`, `currency`, and `approval_status`.
+- **Approval gate.** Imported products are **not active** until manually
+  approved. Only approved, active products are ever recommended.
+- **Version history.** Product changes are versioned; superseding a record keeps
+  the prior version.
+- **The import process must support:** product validation, duplicate-SKU
+  detection, required-field validation, image-URL validation, price validation,
+  category validation, an import **preview**, and import **error reporting** —
+  before anything is committed.
+- **Demo mode.** While using synthetic data, records are flagged as demo; prices
+  and availability are rendered with explicit demo labels.
 
 ---
 

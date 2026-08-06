@@ -16,48 +16,67 @@ function rec(type: RecommendationType): Recommendation {
 }
 const need: CustomerNeed = { id: 'n1', code: 'walking', name: 'Walking', description: null, active: true };
 
-describe('AICoachPanel', () => {
-  it('asks the coach and renders grounded coaching tips with a badge', async () => {
+function setup(provider = createMockCoachProvider(), onFeedback?: (f: string) => void) {
+  return render(
+    <AICoachPanel
+      rec={rec('premium_upgrade')} selected={demoProduct} need={need}
+      provider={provider} onFeedback={onFeedback ? (f) => onFeedback(f) : undefined}
+    />,
+  );
+}
+
+describe('AICoachPanel (Q&A)', () => {
+  it('opens a chat and answers a typed question grounded in the product', async () => {
     const user = userEvent.setup();
-    render(<AICoachPanel rec={rec('premium_upgrade')} selected={demoProduct} need={need} provider={createMockCoachProvider()} />);
+    setup();
 
     await user.click(screen.getByTestId('ask-ai-coach'));
-    expect(await screen.findByTestId('ai-coach-panel')).toBeInTheDocument();
-    expect(screen.getByTestId('grounded-badge')).toHaveTextContent(/Grounded in Approved Data/i);
     const panel = screen.getByTestId('ai-coach-panel');
-    expect(panel).toHaveTextContent('Demo Walk Comfort 2');
-    expect(panel).toHaveTextContent('Plush cushioning');
+    expect(screen.getByTestId('grounded-badge')).toHaveTextContent(/Grounded in Approved Data/i);
+    expect(panel).toHaveTextContent('Demo Walk Comfort 2'); // prompt line names the product
+
+    await user.type(screen.getByTestId('coach-input'), 'Why is this better?');
+    await user.click(screen.getByTestId('coach-send'));
+
+    const answer = await screen.findByTestId('coach-answer');
+    // The answer is grounded: it compares to the selected pair and cites approved facts.
+    expect(answer).toHaveTextContent('Demo Walk Comfort 2');
+    expect(answer).toHaveTextContent(/Demo Air Cushion Max|Plush cushioning/);
     expect(screen.queryByTestId('coach-fallback-note')).not.toBeInTheDocument();
   });
 
-  it('records thumbs feedback', async () => {
+  it('answers a suggested question chip', async () => {
+    const user = userEvent.setup();
+    setup();
+    await user.click(screen.getByTestId('ask-ai-coach'));
+    await user.click(screen.getByRole('button', { name: 'How do I handle the price?' }));
+    const answer = await screen.findByTestId('coach-answer');
+    // Price intent: references the demo price delta.
+    expect(answer).toHaveTextContent(/DEMO 25\.00/);
+  });
+
+  it('records thumbs feedback on an answer', async () => {
     const user = userEvent.setup();
     const got: string[] = [];
-    render(
-      <AICoachPanel
-        rec={rec('premium_upgrade')} selected={demoProduct} need={need}
-        provider={createMockCoachProvider()} onFeedback={(f) => got.push(f)}
-      />,
-    );
+    setup(createMockCoachProvider(), (f) => got.push(f));
     await user.click(screen.getByTestId('ask-ai-coach'));
-    await screen.findByTestId('ai-coach-panel');
-    await user.click(screen.getByLabelText('Mark coaching helpful'));
+    await user.type(screen.getByTestId('coach-input'), 'How should I close?');
+    await user.click(screen.getByTestId('coach-send'));
+    await screen.findByTestId('coach-answer');
+    await user.click(screen.getByLabelText('Mark answer helpful'));
     expect(got).toEqual(['up']);
-    expect(screen.getByTestId('coach-feedback-ack')).toHaveTextContent(/Thanks for the feedback/i);
+    expect(screen.getByTestId('coach-feedback-ack')).toHaveTextContent(/Thanks/i);
   });
 
   it('falls back to approved guidance and labels it when the AI provider fails', async () => {
     const user = userEvent.setup();
-    render(
-      <AICoachPanel
-        rec={rec('premium_upgrade')} selected={demoProduct} need={need}
-        provider={createMockCoachProvider({ failMode: 'error' })}
-      />,
-    );
+    setup(createMockCoachProvider({ failMode: 'error' }));
     await user.click(screen.getByTestId('ask-ai-coach'));
-    expect(await screen.findByTestId('ai-coach-panel')).toBeInTheDocument();
+    await user.type(screen.getByTestId('coach-input'), 'How should I close?');
+    await user.click(screen.getByTestId('coach-send'));
+    const answer = await screen.findByTestId('coach-answer');
     expect(screen.getByTestId('coach-fallback-note')).toHaveTextContent(/AI unavailable/i);
-    // The fallback still shows the Phase 9 grounded content (the approved closing).
-    expect(screen.getByTestId('ai-coach-panel')).toHaveTextContent(/walk around in a pair/i);
+    // Fallback still serves the Phase 9 approved closing content.
+    expect(answer).toHaveTextContent(/walk around in a pair/i);
   });
 });

@@ -49,10 +49,43 @@ export interface CoachResponse {
   fallbackReason?: string;
 }
 
+/** The intent the coach inferred from a free-text associate question. */
+export type CoachIntent =
+  | 'discovery'
+  | 'feature_benefit'
+  | 'comparison'
+  | 'price_objection'
+  | 'style_objection'
+  | 'fit_objection'
+  | 'add_on'
+  | 'closing'
+  | 'general';
+
+/** A grounded answer to one associate question. */
+export interface CoachAnswer {
+  question: string;
+  answer: string;
+  intent: CoachIntent;
+  grounded: true;
+  source: CoachSource;
+  provider: string;
+  /** Present only when source is 'fallback_template'. */
+  fallbackReason?: string;
+}
+
 /** A pluggable coaching provider. The demo ships a local mock; production wires none. */
 export interface CoachProvider {
   name: string;
+  /** Generate the four-section coaching overview. */
   generate(context: CoachContext, signal?: AbortSignal): Promise<CoachResponse>;
+  /** Answer a free-text associate question, grounded strictly in the context. */
+  answer(context: CoachContext, question: string, signal?: AbortSignal): Promise<CoachAnswer>;
+}
+
+export interface AskResult {
+  answer: CoachAnswer;
+  usedFallback: boolean;
+  error: string | null;
 }
 
 export interface CoachResult {

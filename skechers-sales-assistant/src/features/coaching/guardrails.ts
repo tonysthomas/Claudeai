@@ -5,7 +5,7 @@
 //      in the approved grounding context — the coach may rephrase facts but must
 //      not introduce new ones.
 // A failing check makes the service fall back to the deterministic templates.
-import type { CoachContext, CoachResponse } from './types';
+import type { CoachAnswer, CoachContext, CoachResponse } from './types';
 
 /** Medical / health / biomechanical terms the coach must never use. */
 export const PROHIBITED_TERMS: string[] = [
@@ -52,12 +52,21 @@ export function checkGrounding(text: string, ctx: CoachContext): GuardrailResult
   return { ok: violations.length === 0, violations: [...new Set(violations)] };
 }
 
-/** Validate a full coach response: prohibited-claims on every section. */
+/** Validate a full coach response: prohibited-claims + grounding on every section. */
 export function validateCoachResponse(response: CoachResponse, ctx: CoachContext): GuardrailResult {
   const violations: string[] = [];
   for (const s of response.sections) {
     violations.push(...checkProhibitedClaims(s.body).violations);
     violations.push(...checkGrounding(s.body, ctx).violations);
   }
+  return { ok: violations.length === 0, violations: [...new Set(violations)] };
+}
+
+/** Validate a single free-text answer: prohibited-claims + grounding. */
+export function validateCoachAnswer(answer: CoachAnswer, ctx: CoachContext): GuardrailResult {
+  const violations = [
+    ...checkProhibitedClaims(answer.answer).violations,
+    ...checkGrounding(answer.answer, ctx).violations,
+  ];
   return { ok: violations.length === 0, violations: [...new Set(violations)] };
 }

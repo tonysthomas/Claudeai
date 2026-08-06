@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { buildCoachContext, contextToPrompt } from '../../src/features/coaching/context';
 import { checkProhibitedClaims, checkGrounding, validateCoachResponse } from '../../src/features/coaching/guardrails';
-import { createMockCoachProvider, mockCoachProvider } from '../../src/features/coaching/mockProvider';
-import { runCoach, getCoaching, selectCoachProvider } from '../../src/features/coaching/service';
+import { classifyQuestion, createMockCoachProvider, mockCoachProvider } from '../../src/features/coaching/mockProvider';
+import { runCoach, runAsk, getCoaching, askCoach, selectCoachProvider } from '../../src/features/coaching/service';
+import { guidanceToAnswer } from '../../src/features/coaching/fallback';
 import { guidanceToCoachResponse } from '../../src/features/coaching/fallback';
 import { buildGuidance } from '../../src/features/guidance/content';
 import type { Product, CustomerNeed } from '../../src/types/db';
@@ -148,5 +149,65 @@ describe('service fallback', () => {
     const r = await getCoaching({ rec: upgradeRec, selected, need, provider: createMockCoachProvider() });
     expect(r.response.grounded).toBe(true);
     expect(r.response.sections).toHaveLength(4);
+  });
+});
+
+describe('classifyQuestion', () => {
+  it('maps free-text questions to coaching intents', () => {
+    expect(classifyQuestion('Is it too expensive?')).toBe('price_objection');
+    expect(classifyQuestion('They don’t like the colour')).toBe('style_objection');
+    expect(classifyQuestion('Will the fit be too tight?')).toBe('fit_objection');
+    expect(classifyQuestion('Why is this better than the first one?')).toBe('comparison');
+    expect(classifyQuestion('What socks pair with this?')).toBe('add_on');
+    expect(classifyQuestion('How should I close the sale?')).toBe('closing');
+    expect(classifyQuestion('Tell me about it')).toBe('general');
+  });
+});
+
+describe('mock provider answer()', () => {
+  it('answers a price question grounded in the price delta and approved reason', async () => {
+    const ctx = buildCoachContext(upgradeRec, selected, need);
+    const a = await mockCoachProvider.answer(ctx, 'Is it worth the extra money?');
+    expect(a.intent).toBe('price_objection');
+    expect(a.answer).toContain('DEMO 25.00');
+    expect(a.answer).toContain('Premium walking upgrade with more cushioning.');
+    expect(a.source).toBe('ai_demo');
+  });
+
+  it('answers a comparison question grounded in technology + features', async () => {
+    const ctx = buildCoachContext(upgradeRec, selected, need);
+    const a = await mockCoachProvider.answer(ctx, 'Why is this better?');
+    expect(a.answer).toContain('Demo Walk Comfort 2');
+    expect(a.answer).toMatch(/Demo Air Cushion Max|Plush cushioning/);
+  });
+
+  it('never emits ungrounded or medical content for add-on questions', async () => {
+    const ctx = buildCoachContext(addOnRec, selected, need);
+    const a = await mockCoachProvider.answer(ctx, 'Do they really need the insole?');
+    expect(a.answer).toContain('Demo Fresh Insole 1');
+  });
+});
+
+describe('askCoach + runAsk', () => {
+  it('returns the AI answer when the provider succeeds', async () => {
+    const r = await askCoach({ rec: upgradeRec, selected, need, question: 'Why is this better?', provider: createMockCoachProvider() });
+    expect(r.usedFallback).toBe(false);
+    expect(r.answer.source).toBe('ai_demo');
+    expect(r.answer.answer).toContain('Demo Walk Comfort 2');
+  });
+
+  it('falls back to an intent-matched Phase 9 answer when the provider errors', async () => {
+    const r = await askCoach({ rec: upgradeRec, selected, need, question: 'How should I close?', provider: createMockCoachProvider({ failMode: 'error' }) });
+    expect(r.usedFallback).toBe(true);
+    expect(r.answer.source).toBe('fallback_template');
+    expect(r.answer.answer).toMatch(/walk around in a pair/i); // Phase 9 walking closing
+  });
+
+  it('falls back with no provider (production posture)', async () => {
+    const ctx = buildCoachContext(upgradeRec, selected, need);
+    const fallback = guidanceToAnswer(buildGuidance(upgradeRec, need, selected.id), 'q', 'general', 'test');
+    const r = await runAsk(ctx, 'q', { provider: null, fallback });
+    expect(r.usedFallback).toBe(true);
+    expect(r.error).toBeNull();
   });
 });

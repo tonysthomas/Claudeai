@@ -38,9 +38,10 @@ basket / interested / declined / unavailable / not relevant) under each
 recommendation (RLS-safe, PII-free); and, **in DEMO_MODE only**, expand a **sales
 guidance** panel (discovery question · selling point · objection handling ·
 closing question, each copyable), open a **performance analytics dashboard** over
-synthetic events, and **"Ask AI Coach"** — a grounded AI sales coach that turns
-approved product facts into conversational discovery / feature→benefit / objection
-/ closing tips. The coach runs on a **local mock LLM in DEMO_MODE** (no external
+synthetic events, and **"Ask AI Coach"** — a grounded AI sales coach the associate
+can **ask free-text questions** about the recommended product (price, style, fit,
+"why is this better?", how to close…), answered from that product's approved data.
+The coach runs on a **local mock LLM in DEMO_MODE** (no external
 API calls, no customer PII), is **grounded strictly in approved data**, is filtered
 by medical-claim + grounding guardrails, and **falls back to the Phase 9 approved
 templates** on any failure — and always in production, where no LLM is wired.

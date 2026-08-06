@@ -337,7 +337,12 @@ Phase 9 deterministic approved templates**. In **DEMO_MODE** the provider is a
 only** (grounded by construction) — **no external API calls, no customer PII**.
 In production `selectCoachProvider` returns **null**, so the coach always serves
 the approved template until a real, approved, retrieval-grounded provider is
-wired behind the same seam. Thumbs 👍/👎 feedback is **demo-only, anonymous, and
+wired behind the same seam. The coach is a **conversational Q&A**: the associate
+asks a free-text question, which the provider classifies into an intent (price /
+style / fit objection, comparison, feature→benefit, add-on, discovery, closing,
+general) and answers **from the context only**; the fallback maps the same intent
+to the matching Phase 9 approved snippet, so every answer — AI or fallback — stays
+grounded and safe. Thumbs 👍/👎 feedback is **demo-only, anonymous, and
 not persisted** (no new table/migration, no PII).
 **Context:** Phase 11 asks for dynamic conversational coaching without violating
 the "approved products only / never invent / grounded AI only" principles or

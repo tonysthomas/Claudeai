@@ -796,15 +796,23 @@ validations unchanged and green.
       medical/health/therapeutic/biomechanical claims (e.g. "cures plantar
       fasciitis") and flags any technology not present in the grounding context.
 - [x] **UI** — the Phase 9 sales-guidance panel gains an **"🤖 Ask AI Coach"**
-      button that shows a thinking/loading state, caches the result, renders the
-      tips with a **"Grounded in Approved Data"** badge, labels template fallback,
-      and records 👍/👎 helpfulness locally (demo-only, anonymous, not persisted).
+      **conversational Q&A**: the associate types (or taps a suggested) question
+      about the recommended product and the coach answers it, grounded in that
+      product's approved data. Multi-turn thread, per-answer thinking state, a
+      **"Grounded in Approved Data"** badge, template-fallback labeling, and 👍/👎
+      per answer (demo-only, anonymous, not persisted).
+- [x] **Question answering** — `askCoach` / provider `answer()` classify a
+      free-text question into an intent (price / style / fit objection,
+      comparison, feature→benefit, add-on, discovery, closing, general) and
+      compose a grounded reply from the context; fallback maps the intent to the
+      matching Phase 9 approved snippet.
 - [x] No external API calls, no scrapers, no customer PII; production posture is a
       safe template fallback. Language stays on comfort/feel/fit/style/value.
 - [x] Tests: context builder + prompt attributes, prohibited-claim + grounding
-      guardrails, mock provider structure/variation, service fallback on
-      error/timeout/no-provider, UI ask→render→badge→feedback→fallback; Phase 4–10
-      suites still green. Browser demo updated.
+      guardrails, mock provider overview + question answering, intent
+      classification, service fallback on error/timeout/no-provider (overview and
+      Q&A), UI open→ask→answer→feedback→fallback; Phase 4–10 suites still green.
+      Browser demo updated.
 - [x] Docs updated (this file, README, DECISIONS ADR-022).
 - [ ] Reviewer approval.
 

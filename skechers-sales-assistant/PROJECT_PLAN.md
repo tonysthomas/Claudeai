@@ -65,16 +65,17 @@ Each phase ends with a review and an explicit approval gate before the next.
 
 > **Delivery log (linear execution order).** ✅ **1. Planning & setup** → ✅
 > **2. Data model & seed** → ✅ **3. Catalogue import workflow**
-> (`database/IMPORT.md`) → ▶ **next: Core UI shell**. The table below lists the
-> thematic work-areas; their numbers are stable references used across the
-> docs/code (e.g. "auth = Phase 6"). The catalogue-import workflow delivered the
+> (`database/IMPORT.md`) → ✅ **4. Mobile UI shell** (product lookup + detail +
+> customer-need selection) → ▶ **next: recommendation engine**. The table below
+> lists the thematic work-areas; their numbers are stable references used across
+> the docs/code (e.g. "auth = Phase 6"). Catalogue import delivered the
 > approved-import foundation of the "Real data" area (thematic Phase 8) early.
 
 | Phase | Name | Focus | Notable exclusions |
 |------|------|-------|--------------------|
 | **1 ✅** | Planning & setup | This doc, `CLAUDE.md`, `DECISIONS.md`, folder skeleton, env template | No code/engine/UI/auth/AI/real data |
 | **2 ✅** | Data model & seed | Supabase schema + migrations (8 tables), enums, RLS, synthetic seed, placeholder images, validation | No UI yet |
-| **3** | Core UI shell | React + Vite + Tailwind PWA shell, routing, product lookup + display, need selection (reads catalogue data) | No recommendation logic |
+| **3 ✅** | Core UI shell | React + Vite + Tailwind app, routing, product lookup + display, need selection (reads catalogue data) | No recommendation logic |
 | **4** | Recommendation engine (rules-based) | Deterministic scoring/prioritization from stored relationships + rules; return top 3 across categories | No AI |
 | **5** | Outcome logging | Record outcomes to DB (anonymous), narrow write policy, basic validation | No analytics dashboards |
 | **6** | Auth | Supabase Auth for associates; attribute outcomes to associate/store | — |
@@ -542,3 +543,35 @@ decision #7 for now; can revisit).
 **Phase 4 objective:** Core UI shell — a mobile-first React + Vite + Tailwind PWA
 that reads the catalogue/seed data: product lookup + display and customer-need
 selection. **No** recommendation engine, auth, AI, or barcode scanning yet.
+
+---
+
+## 12. Phase 4 status — ✅ COMPLETED (pending reviewer approval)
+
+Phase 4 (Mobile UI shell, product lookup, customer-need selection) is complete.
+**All checks pass:** typecheck OK, 52 tests (14 UI + 38 existing), production
+build OK.
+
+- [x] Mobile-first app shell (`Header` with app name + `DEMO` badge, `Layout`,
+      responsive phone/tablet), reusable loading/error/empty state views.
+- [x] Product lookup: search by SKU / style number / name (debounced), clear
+      button, "Product not found" state — reads the existing `products` table.
+- [x] Product card + detail view: image with category fallback, all required
+      fields grouped, demo-labeled price, back-to-search.
+- [x] Customer-need selection: the 9 needs (from `customer_needs`), selection
+      stored in `SelectionContext` with a confirmation — **no recommendations
+      generated** (state prepped for Phase 5).
+- [x] Supabase integration via `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`
+      (public anon key only; service-role never in frontend). **No schema
+      changes** — the existing tables already had every field.
+- [x] Tests for search, not-found, detail rendering, image fallback, need
+      selection, loading, error, empty states.
+- [x] README (frontend setup), DECISIONS (ADR-012/013) updated.
+- [ ] Reviewer approval before starting the next phase.
+
+**Phase 5 objective:** Recommendation engine (rules-based, no AI) — given the
+selected product + customer need, read `product_relationships` and return the
+top prioritized, approved recommendations (upgrade / alternative / socks /
+shoe-care), each with its stored reason, customer benefit, and selling copy,
+rendered in the UI with outcome logging. Deterministic and unit-tested; **no
+AI**.

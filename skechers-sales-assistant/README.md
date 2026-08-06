@@ -26,8 +26,10 @@ database that is the single runtime source of truth. See `PROJECT_PLAN.md` §3a.
 
 ## Status
 
-**Phase 1 — planning & project setup (this commit).** No application code,
-recommendation engine, UI, authentication, AI calls, or real Skechers data yet.
+**Phases 1–4 complete.** Planning & setup, database foundation (8 tables +
+synthetic seed), catalogue-import workflow, and the **mobile UI shell** (product
+search/detail + customer-need selection). No recommendation engine, AI, auth, or
+real Skechers data yet.
 
 Start here:
 
@@ -54,10 +56,33 @@ associate picks a customer need → 4. app shows **three prioritized
 recommendations** (image, name, price, type, reason, benefit, selling sentence,
 availability) → 5. associate records the outcome.
 
-## Getting started
+## Getting started (frontend)
 
-Not runnable yet — the toolchain is scaffolded in Phase 2. Intended commands are
-listed in [`DECISIONS.md`](./DECISIONS.md) §7.
+Mobile-first React + Vite + Tailwind app for the associate flow: **search a
+product → view details → select a customer need**. Reads the existing `products`
+and `customer_needs` tables via Supabase (public anon key only).
+
+```bash
+cd skechers-sales-assistant
+npm install
+
+# Point at a local Supabase (or any Supabase project). Copy the env template:
+cp .env.example .env
+#   VITE_SUPABASE_URL=...        (e.g. http://127.0.0.1:54321 for local supabase)
+#   VITE_SUPABASE_ANON_KEY=...   (public anon key ONLY — never the service role)
+#   VITE_DEMO_MODE=true          (labels prices/availability as demo)
+
+npm run dev         # start the dev server (http://localhost:5173)
+npm run typecheck   # tsc --noEmit
+npm test            # vitest (unit + UI component tests)
+npm run build       # production build → dist/
+npm run preview     # preview the production build
+```
+
+To populate data, run the database migrations + seed (see
+[`database/VALIDATION.md`](./database/VALIDATION.md)) against your local Supabase,
+then start the app. The demo shows synthetic products only and never presents
+itself as an official Skechers application.
 
 ## Working conventions
 

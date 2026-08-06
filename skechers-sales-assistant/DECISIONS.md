@@ -165,6 +165,29 @@ writes. Tracked in `PROJECT_PLAN.md` (Pre-production security review) and
 it would block demo development); leaving it permissive into production
 (rejected — unsafe).
 
+### ADR-012 — Frontend structure: prop-driven views + thin query containers (Phase 4)
+**Decision:** Build the UI as small **presentational components** driven purely
+by props (loading/error/empty/success), wrapped by thin **container** components
+that wire TanStack Query + the Supabase client + React Router. The associate's
+selection (product + customer need) lives in a `SelectionContext`, ready for the
+Phase 5 engine.
+**Context:** Phase 4 needs testable states without a live database, and a clean
+seam for the recommendation engine.
+**Consequences:** Every state is unit-testable by rendering the view with props;
+data access is isolated in `src/lib`; no recommendations are produced yet. Data
+layer is mocked/omitted in tests, so no Supabase instance is required to test.
+**Alternatives:** Fetching directly inside presentational components (harder to
+test); a global store like Redux (unnecessary for this scope).
+
+### ADR-013 — Demo labeling in the UI
+**Decision:** `VITE_DEMO_MODE` (default true) makes the UI render prices with a
+`Demo` prefix and show a `DEMO` badge in the header; the app never presents as an
+official Skechers application.
+**Context:** Product principle — synthetic data must never look like official
+Skechers pricing/branding.
+**Consequences:** Safe to demo; flip `VITE_DEMO_MODE=false` only with approved
+real data. **Alternatives:** No demo labeling (rejected — misleading).
+
 ---
 
 ## 3. Project folder structure (proposed)

@@ -120,7 +120,7 @@ Detailed columns are defined at build time (Phase 2). Entities and relationships
 
 | Entity | Purpose | Key fields (indicative) | Relationships |
 |--------|---------|-------------------------|---------------|
-| `products` | Approved catalog | `id`, `product_code`/SKU (unique), `name`, `category_id`, `type`, `gender`, `price`, `currency`, `description`, `image_url`, `availability_status`, `is_active`, `is_demo`, **`source`, `import_date`, `region`, `approval_status`** | 1—* relationships & rules; referenced by outcomes; has version history |
+| `products` | Approved catalog | `id`, `sku` (unique), `barcode`, `style_number`, `name`, `category`, `subcategory`, `gender`, `color`, `size_range`, `price`, `currency`, `region`, `image_url`, `description`, `key_features`, `technology`, `activity_type`, `source`, `source_url`, `approval_status`, `imported_at`, `updated_at`, plus `is_active`/`is_demo`/`availability_status` (full column list below) | 1—* relationships & rules; referenced by outcomes; has version history |
 | `product_categories` | Controlled category list (enables category validation) | `id`, `code`, `label`, `is_active` | referenced by products |
 | `customer_needs` | The 9 approved needs | `id`, `code`, `label`, `description` | referenced by rules & outcomes |
 | `product_relationships` | Typed links between products | `id`, `from_product_id`, `to_product_id`, `relationship_type`, `priority` | self-ref many-to-many on `products` |
@@ -131,6 +131,43 @@ Detailed columns are defined at build time (Phase 2). Entities and relationships
 | `outcomes` | Anonymous result log | `id`, `source_product_id`, `need_id`, `recommended_product_id`, `recommendation_type`, `outcome`, `associate_id?`, `store_id?`, `created_at` | references products/needs; **no customer PII** |
 | `associates` *(Phase 6)* | Login identity | `id`, `display_name`, `store_id`, `role` | referenced by outcomes |
 | `stores` *(Phase 6)* | Store context | `id`, `name`, `region` | referenced by associates/outcomes |
+
+### `products` table — columns from the start
+
+The `products` table is created with these columns in the first migration
+(Phase 2), so the schema is ready for the approved catalogue without later
+restructuring:
+
+| Column | Type (indicative) | Notes |
+|--------|-------------------|-------|
+| `id` | uuid (PK) | Generated primary key |
+| `sku` | text, unique | Product code; duplicate-checked on import |
+| `barcode` | text | Scannable identifier (enables the future scan flow) |
+| `style_number` | text | Manufacturer style reference |
+| `name` | text | Display name |
+| `category` | text | Validated against `product_categories` on import |
+| `subcategory` | text | Validated against `product_categories` on import |
+| `gender` | text | e.g. men / women / kids / unisex |
+| `color` | text | Colorway |
+| `size_range` | text | Available sizes |
+| `price` | numeric(10,2) | Demo-labeled until an approved catalogue exists |
+| `currency` | text | ISO 4217 code (e.g. USD) |
+| `region` | text | Market the record applies to |
+| `image_url` | text | Format/host validated on import |
+| `description` | text | Long description |
+| `key_features` | text[] / jsonb | Structured feature list |
+| `technology` | text[] / jsonb | Named Skechers technologies (approved data only) |
+| `activity_type` | text | Best-for activity (feeds `best_for_activity`) |
+| `source` | text | Origin of the record (file/integration) |
+| `source_url` | text | Reference URL for the record's origin |
+| `approval_status` | enum | `draft`/`pending_review`/`approved`/`rejected`/`archived`; gates activation |
+| `imported_at` | timestamptz | When the record was ingested |
+| `updated_at` | timestamptz | Last modification (auto-updated) |
+
+Operational columns also present on the table: `is_active` (only active rows are
+recommended), `is_demo` (drives demo labeling of synthetic data), and
+`availability_status` (`in_stock`/`limited`/`out_of_stock`/`order_only`; static
+in the MVP, demo-labeled until live inventory).
 
 **Enum-like values** (Postgres enums or lookup tables):
 
@@ -163,7 +200,7 @@ customer PII is stored; and no medical/health/unsupported claims are made.
 **Production import model (designed now, tooling built in Phase 8).** The schema
 is designed so an approved catalogue can later be uploaded via **CSV, Excel,
 JSON, or an authorized API**. Every imported record carries `source`,
-`import_date`, `region`, `currency`, and `approval_status`, and stays **inactive
+`imported_at`, `region`, `currency`, and `approval_status`, and stays **inactive
 until manually approved**. The import path is staged, not direct-to-live:
 
 ```

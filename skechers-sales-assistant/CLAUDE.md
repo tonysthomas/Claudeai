@@ -164,7 +164,7 @@ CSV, Excel, JSON, or an authorized API. Design for this now (schema), even
 though the full import tooling is a later phase.
 
 - **Provenance is mandatory.** Every imported product record must carry:
-  `source`, `import_date`, `region`, `currency`, and `approval_status`.
+  `source`, `imported_at`, `region`, `currency`, and `approval_status`.
 - **Approval gate.** Imported products are **not active** until manually
   approved. Only approved, active products are ever recommended.
 - **Version history.** Product changes are versioned; superseding a record keeps

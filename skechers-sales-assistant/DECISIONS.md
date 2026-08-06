@@ -98,7 +98,7 @@ JSON, or an authorized API. Imports land in `import_batches` +
 price, image URL, category against `product_categories`), shown as a **preview
 with a per-row error report**, and only then committed to `products` — writing a
 `product_versions` history entry. Products stay inactive until **manual
-approval**. Every record carries `source`, `import_date`, `region`, `currency`,
+approval**. Every record carries `source`, `imported_at`, `region`, `currency`,
 and `approval_status`.
 **Context:** Catalogue governance requirements; nothing recommended before
 approval.

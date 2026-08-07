@@ -5,6 +5,13 @@
 // source_identifier (style), source_version (synced_at), region, currency.
 import type { ExtractedSkechersProduct } from './extractor';
 import type { IngestOptions, NormalizedIngestRow, PriceTier } from './types';
+import { deriveProductFromSku } from '../../src/lib/ingest/deriveProduct';
+
+// Re-export the shared universal SKU normalizer so callers can parse/infer any
+// SKU shape (numeric, suffixed, hyphenated) and infer a segment when metadata is
+// missing. Single implementation, shared with the app's live search.
+export { parseSku, isLikelySku, inferSegment, canonicalSkuKey } from '../../src/lib/ingest/skuParse';
+export type { ParsedSku, SkuSegment } from '../../src/lib/ingest/skuParse';
 
 /** Map Skechers category + subcategory to our internal product category. */
 export function mapCategory(category: string, subcategory: string | null): string {
@@ -92,4 +99,25 @@ export function normalizeProduct(p: ExtractedSkechersProduct, opts: IngestOption
   };
 
   return { row, priceTier: priceTier(p.price, region), sku: p.sku };
+}
+
+/**
+ * Universal SKU normalizer: build a canonical import row from JUST a SKU string
+ * (numeric / suffixed / hyphenated), inferring the segment when metadata is
+ * missing. Returns null if the input is not a valid SKU shape. Derived records
+ * are clearly demo-flagged (no fabricated official facts) — see deriveProductFromSku.
+ */
+export function normalizeSkuInput(input: string, opts: IngestOptions): NormalizedIngestRow | null {
+  const derived = deriveProductFromSku(input, { region: opts.region, currency: opts.currency });
+  if (!derived) return null;
+  const p = derived.product;
+  const row: Record<string, unknown> = {
+    sku: p.sku, style_number: p.style_number, name: p.name, category: p.category, subcategory: p.subcategory,
+    gender: p.gender, color: p.color, size_range: p.size_range, price: p.price, currency: p.currency, region: p.region,
+    image_url: p.image_url, product_url: p.product_url, description: p.description, key_features: p.key_features,
+    technology: p.technology, activity_type: p.activity_type,
+    source_type: 'skechers_official_web', source_url: p.product_url, source_identifier: p.style_number,
+    source_version: opts.syncedAt,
+  };
+  return { row, priceTier: priceTier(p.price, p.region), sku: p.sku };
 }

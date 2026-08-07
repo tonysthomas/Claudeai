@@ -4,6 +4,7 @@
 import type { Product } from '../types/db';
 import { INGESTED_PRODUCTS } from './ingested.generated';
 import type { IngestedDemoProduct } from './ingestedTypes';
+import { runtimeProducts, ingestSkuIntoRuntime } from './runtimeStore';
 
 const svg = (label: string, bg: string, fg: string): string =>
   'data:image/svg+xml;utf8,' +
@@ -79,14 +80,30 @@ export const DEMO_PRODUCTS: Product[] = [...BASE_DEMO_PRODUCTS, ...INGESTED_PROD
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+function allProducts(): Product[] {
+  return [...DEMO_PRODUCTS, ...runtimeProducts()];
+}
+
 export async function searchProducts(query: string, limit = 25): Promise<Product[]> {
   await sleep(250);
   const q = query.trim().toLowerCase();
   if (q === '') return [];
-  return DEMO_PRODUCTS.filter((p) => `${p.sku} ${p.style_number ?? ''} ${p.name}`.toLowerCase().includes(q)).slice(0, limit);
+  return allProducts()
+    .filter((p) => `${p.sku} ${p.style_number ?? ''} ${p.name}`.toLowerCase().includes(q))
+    .slice(0, limit);
 }
 
 export async function getProductBySku(sku: string): Promise<Product | null> {
   await sleep(150);
-  return DEMO_PRODUCTS.find((p) => p.sku === sku) ?? null;
+  return allProducts().find((p) => p.sku === sku) ?? null;
+}
+
+/**
+ * Live-ingest a SKU on a search miss (DEMO): derive the product + fallback
+ * recommendations client-side and keep them in the session runtime store. No
+ * network, no scraping. Returns the product, or null if the input is not a SKU.
+ */
+export async function liveIngestSku(input: string): Promise<Product | null> {
+  await sleep(600); // simulate the backend ingest round-trip
+  return ingestSkuIntoRuntime(input, DEMO_PRODUCTS);
 }

@@ -33,6 +33,54 @@ export interface GeneratedRelationship {
   activity_type: string | null;
 }
 
+const nameHas = (p: IngestProduct, ...needles: string[]) => {
+  const hay = `${p.name} ${p.subcategory ?? ''} ${p.technology ?? ''}`.toLowerCase();
+  return needles.some((n) => hay.includes(n));
+};
+
+/**
+ * Fallback universal mapper: for ANY footwear product, generate up to 3 valid
+ * recommendations from an anchor pool — a higher-tier upgrade, a segment-matched
+ * add-on sock, and a material-matched shoe-care item. Used when a product has no
+ * curated relationships (e.g. a live-ingested arbitrary SKU).
+ */
+export function generateFallbackRelationships(product: IngestProduct, anchors: IngestProduct[]): GeneratedRelationship[] {
+  const price = (p: IngestProduct) => p.price ?? 0;
+  const need = needFor(product);
+  const out: GeneratedRelationship[] = [];
+
+  const shoes = anchors.filter((p) => p.category === 'shoes' && p.sku !== product.sku && p.price !== null);
+  const dearer = shoes.filter((p) => price(p) > price(product)).sort((a, b) => price(a) - price(b));
+  const upgrade = dearer[0] ?? [...shoes].sort((a, b) => price(b) - price(a))[0];
+  if (upgrade) {
+    out.push({ sourceSku: product.sku, targetSku: upgrade.sku, relationship_type: 'upgrade_to', priority: 1,
+      reason: 'A higher-tier Skechers option.', customer_benefit: 'A step up in cushioning and materials.', customer_need: need, activity_type: product.activity_type });
+  }
+
+  const socks = anchors.filter((p) => p.category === 'socks' && p.sku !== product.sku);
+  const kids = /kids?/.test(`${product.subcategory} ${product.name}`.toLowerCase());
+  const sock =
+    (kids ? socks.find((p) => nameHas(p, 'kid', 'youth', 'no-show')) : undefined) ??
+    (product.subcategory === 'work' ? socks.find((p) => nameHas(p, 'work')) ?? socks.find((p) => nameHas(p, 'crew')) : undefined) ??
+    (nameHas(product, 'slip-in') ? socks.find((p) => nameHas(p, 'no-show')) : undefined) ??
+    socks.find((p) => nameHas(p, 'performance')) ??
+    socks[0];
+  if (sock) {
+    out.push({ sourceSku: product.sku, targetSku: sock.sku, relationship_type: 'pairs_with', priority: 2,
+      reason: 'Pairs with Skechers socks.', customer_benefit: 'Comfort and a better fit during wear.', customer_need: need, activity_type: product.activity_type });
+  }
+
+  const care = anchors.filter((p) => p.category === 'shoe_care');
+  const knit = nameHas(product, 'knit', 'mesh', 'stretch', 'slip-in');
+  const careItem = (knit ? care.find((p) => nameHas(p, 'protector', 'water', 'stain', 'spray')) : care.find((p) => nameHas(p, 'clean', 'foam'))) ?? care[0];
+  if (careItem) {
+    out.push({ sourceSku: product.sku, targetSku: careItem.sku, relationship_type: 'recommended_add_on', priority: 3,
+      reason: 'Protect and care for the shoes.', customer_benefit: 'Keeps them looking new for longer.', customer_need: null, activity_type: null });
+  }
+
+  return out;
+}
+
 function needFor(p: IngestProduct): string | null {
   const key = `${p.subcategory ?? ''} ${p.activity_type ?? ''}`.toLowerCase();
   if (key.includes('walk')) return 'walking';

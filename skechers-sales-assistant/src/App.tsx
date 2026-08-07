@@ -2,7 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { Layout } from './components/ui/Layout';
 import { LoginPage } from './features/auth/LoginPage';
 import { RequireAuth } from './features/auth/RequireAuth';
-import { SearchPage } from './features/products/SearchPage';
+import { ProductSearch } from './features/search/ProductSearch';
 import { ProductPage } from './features/products/ProductPage';
 import { AnalyticsPage } from './features/analytics/AnalyticsPage';
 
@@ -15,7 +15,7 @@ export function App() {
           path="/"
           element={
             <RequireAuth>
-              <SearchPage />
+              <ProductSearch />
             </RequireAuth>
           }
         />

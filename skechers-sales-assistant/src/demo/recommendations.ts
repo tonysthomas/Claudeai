@@ -3,6 +3,7 @@ import type { Product } from '../types/db';
 import type { RecommendationCandidate, RelationshipRow, RelationshipType } from '../features/recommendations/types';
 import { DEMO_PRODUCTS } from './products';
 import { INGESTED_EDGES } from './ingested.generated';
+import { runtimeCandidatesFor } from './runtimeStore';
 
 const bySku = new Map(DEMO_PRODUCTS.map((p) => [p.sku, p]));
 
@@ -93,6 +94,9 @@ const INGESTED_EDGE_MAP: Record<string, RelationshipRow[]> = (() => {
 
 export async function getRecommendationCandidates(product: Product): Promise<RecommendationCandidate[]> {
   await new Promise((r) => setTimeout(r, 200));
+  // Live-ingested products carry their fallback candidates in the runtime store.
+  const runtime = runtimeCandidatesFor(product.sku);
+  if (runtime) return runtime;
   const edges = EDGES[product.sku] ?? INGESTED_EDGE_MAP[product.sku] ?? [];
   const out: RecommendationCandidate[] = [];
   for (const relationship of edges) {

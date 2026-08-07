@@ -5,7 +5,13 @@
 export type FileFormat = 'csv' | 'xlsx' | 'json';
 
 /** Source classes, matching products.source_type / catalogue_imports.source_type. */
-export type SourceType = 'website' | 'catalogue' | 'api_feed' | 'manual' | 'synthetic_demo';
+export type SourceType =
+  | 'website'
+  | 'catalogue'
+  | 'api_feed'
+  | 'manual'
+  | 'synthetic_demo'
+  | 'skechers_official_web';
 
 /** Lifecycle status of a product record (products.data_status). */
 export type DataStatus = 'demo' | 'imported' | 'synchronized' | 'changed' | 'archived';

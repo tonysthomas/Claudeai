@@ -17,6 +17,7 @@ const SOURCE_TYPES: ReadonlySet<string> = new Set([
   'api_feed',
   'manual',
   'synthetic_demo',
+  'skechers_official_web',
 ]);
 const DATA_STATUSES: ReadonlySet<string> = new Set([
   'demo',

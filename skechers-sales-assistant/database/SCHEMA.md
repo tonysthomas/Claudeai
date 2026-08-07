@@ -30,7 +30,7 @@ same normalized model.
 
 | Field | Allowed values |
 |-------|----------------|
-| `products.source_type`, `product_sources.source_type` | `website`, `catalogue`, `api_feed`, `manual`, `synthetic_demo` |
+| `products.source_type`, `product_sources.source_type`, `catalogue_imports.source_type` | `website`, `catalogue`, `api_feed`, `manual`, `synthetic_demo`, `skechers_official_web` *(added by migration `20260807120000` for Method 1 ingestion)* |
 | `products.data_status` | `demo`, `imported`, `synchronized`, `changed`, `archived` |
 | `products.approval_status`, `product_sources.approval_status`, `product_relationships.approval_status`, `recommendation_approvals.approval_status` | `draft`, `demo`, `pending_review`, `approved`, `rejected`, `archived` |
 | `product_sources.permission_status` | `pending`, `granted`, `revoked`, `not_required` |

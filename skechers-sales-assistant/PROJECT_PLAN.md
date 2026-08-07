@@ -166,11 +166,19 @@ permanently coupled to a single source:
 
 | # | Source | Status | Notes |
 |---|--------|--------|-------|
-| 1 | Authorized Skechers website source | Future, permission-gated | Only after partner agreement/approval; no live retrieval or scraping is built now |
+| 1 | Authorized Skechers web/official records | **Method 1 pipeline built** | `scripts/skechers/` ingests authorized-sample records via a source-adapter (fixtures/export file) through the Phase 3 importer. **No scraping** — the live-web adapter is a permission-gated seam, disabled by default. |
 | 2 | Approved Skechers catalogue | Future | Uploaded via the staged import pipeline (§6) |
-| 3 | Official API / product feed | Future (if provided) | Pull/sync connector |
+| 3 | Official API / product feed | Future (if provided) | Pull/sync connector — plugs in behind the same `SkechersSource` adapter |
 | 4 | Internal manual entry | Supported | Curator-entered approved records |
-| 5 | Synthetic demo data | **Active now** | The only source during development |
+| 5 | Synthetic demo data | **Active now** | The default source during development |
+
+> **Method 1 — Real Skechers Product Ingestion & Web Connector (built).** A
+> standalone backend pipeline (`scripts/ingest-skechers.ts`, `npm run
+> ingest:skechers`) extracts + normalizes authorized product records, generates
+> typed recommendation relationships from approved business rules, and imports
+> them through the Phase 3 catalogue engine with `source_type='skechers_official_web'`
+> provenance. It performs **no live scraping of skechers.com** (authorized adapter +
+> provided data). See `database/IMPORT.md` (runner usage) and `DECISIONS.md` ADR-023.
 
 Each source is reached through its own **data connector (adapter)**; all data is
 **normalized**, validated, and approved before it lands in the internal database.

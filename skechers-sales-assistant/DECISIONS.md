@@ -359,6 +359,47 @@ copy without grounding (violates the no-invention principle — rejected);
 persisting AI feedback to a new table now (premature; a reporting/RLS concern for
 Phase 12 — deferred).
 
+### ADR-023 — Web data ingestion: authorized source-adapter pipeline, no scraper (Method 1)
+**Decision:** Real Skechers product ingestion is a **standalone backend pipeline**
+(`scripts/skechers/` + `scripts/ingest-skechers.ts`) built on a **source-adapter
+seam** (`SkechersSource`). The default adapter (`FixtureSkechersSource`) reads
+**authorized sample records** from bundled fixtures / a provided export file — it
+performs **no network access**. A `LiveWebSource` adapter exists only to show the
+seam; it is **disabled by default and refuses to run** unless
+`SKECHERS_INGEST_AUTHORIZED=true` and an operator-supplied approved endpoint are
+set, and it **never defaults to skechers.com**. This project ships **no scraper**
+(honoring CLAUDE.md's "do not implement scraping/crawling tooling — not in any
+phase"). The pipeline: source → `extractProduct` → `normalizeProduct`
+(taxonomy/gender/activity mapping + `source_type='skechers_official_web'`,
+`source_url`, `source_identifier`, `source_version`/synced_at) → the **Phase 3
+importer** (`buildImportPreview`/`planCommit` — same validation, dedupe, and
+safe-approval guarantees) → an **automatic relationship rule engine** that wires
+typed edges from **approved business rules** (walking→socks+care+premium upgrade;
+Slip-ins→no-show socks; Work→slip-resistant upgrade; price tiers→lower/higher
+price options) → emitters that produce an **idempotent SQL script** (products
+upsert that updates only price/image on SKU conflict, provenance rows, batch
+record, relationships) and an optional **browser-demo module**. The app UI never
+fetches from skechers.com; it reads only the internal DB (or the demo module).
+Approval stays **`pending_review`** unless `--auto-approve` is passed (an explicit
+action), never weakening the importer's safe default.
+**Context:** Method 1 asked to fetch real product data live from skechers.com,
+which directly conflicts with CLAUDE.md's non-negotiable no-scraping rule and the
+"official data is permission-gated" policy. The user chose the **authorized
+adapter + provided data** path, so the whole pipeline is real, runnable, and
+tested without scraping. A new `source_type='skechers_official_web'` enum value
+(migration `20260807120000`) makes this provenance explicit and auditable.
+**Consequences:** Ingestion is deterministic and unit/DB-testable offline;
+relationships are generated from approved rules (never invented product facts);
+provenance and approval gating are preserved end-to-end. Swapping in a real
+authorized feed/connector is a one-adapter change behind `SkechersSource` — the
+extractor, normalizer, relationship engine, importer, and emitters stay unchanged.
+Generated relationship reasons/benefits are factual and non-medical.
+**Alternatives:** A live scraper of skechers.com (violates CLAUDE.md + unauthorized
+use of a third-party site — rejected); calling the website from the app UI
+(violates "app never calls external product sites" — rejected); auto-approving
+imports by default (violates the Phase 3 safe workflow — gated behind an explicit
+flag instead).
+
 ---
 
 ## 3. Project folder structure (proposed)

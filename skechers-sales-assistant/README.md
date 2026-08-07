@@ -141,6 +141,26 @@ To populate data, run the database migrations + seed (see
 then start the app. The demo shows synthetic products only and never presents
 itself as an official Skechers application.
 
+## Real product ingestion (Method 1 — authorized adapter, no scraping)
+
+A standalone backend pipeline ingests **real (authorized-sample) Skechers product
+records** — extract → normalize → auto-generate recommendation relationships →
+Phase 3 catalogue import (`source_type='skechers_official_web'`). It reads provided
+fixtures / an export file behind a source-adapter; it **does not scrape
+skechers.com**, and the app UI never fetches from the web (see
+[`database/IMPORT.md`](./database/IMPORT.md) and `DECISIONS.md` ADR-023).
+
+```bash
+npm run ingest:skechers -- --styles=232625,124500,216202                       # preview + emit SQL
+npm run ingest:skechers -- --styles=232625,124500,216202 --auto-approve --update-demo
+```
+
+It writes an idempotent SQL script (`supabase/seed/skechers_ingested.sql`) to apply
+to a Supabase/staging DB, and (with `--update-demo`) refreshes the browser-demo data
+so the app can search and display the real products with their generated
+recommendations. Never apply to production without the pre-flight review in
+[`database/GOVERNANCE.md`](./database/GOVERNANCE.md).
+
 ## Working conventions
 
 Development proceeds **phase by phase**, with an approval gate before each next

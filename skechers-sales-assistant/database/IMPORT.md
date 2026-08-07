@@ -113,9 +113,46 @@ npm run import:demo        # parse data/demo-catalogue.csv and print the preview
 required field (name), 1 invalid price, 1 invalid currency. No real Skechers
 names, images, prices, or descriptions.
 
-## Not in this phase
+## Method 1 — Real Skechers ingestion runner (authorized adapter)
 
-No product UI, no barcode scanning, no AI, no authentication, no scraping/website
-crawler, no live website connection, and no real catalogue data. The website/API
-connectors themselves are future, permission-gated phases (see `PROJECT_PLAN.md`
-§3a and the data-source roadmap).
+A standalone backend pipeline ingests **real (authorized-sample) Skechers product
+records** through this same Phase 3 importer. It **does not scrape skechers.com**
+— the default source reads provided fixtures / an export file behind a
+source-adapter seam (see `DECISIONS.md` ADR-023 and `database/GOVERNANCE.md`). The
+app UI never fetches from the web; it reads only the internal DB.
+
+```bash
+# Ingest sample styles (auto-includes the anchor products the rules reference):
+npm run ingest:skechers -- --styles=232625,124500,216202
+
+# Approve on import + refresh the browser-demo data module:
+npm run ingest:skechers -- --styles=232625,124500,216202 --auto-approve --update-demo
+
+# From a provided authorized export file, for a different market:
+npm run ingest:skechers -- --file=./data/skechers-export.json --region=US --currency=USD
+```
+
+**Flags:** `--styles=` (comma list; default = all bundled samples) · `--file=`
+(JSON export overlay) · `--region=` / `--currency=` (default `AE` / `AED`) ·
+`--auto-approve` (explicit approval → `approved`; otherwise `pending_review`) ·
+`--update-demo` (write `src/demo/ingested.generated.ts`) · `--out=` (SQL path,
+default `supabase/seed/skechers_ingested.sql`) · `--dry-run`.
+
+**Pipeline:** source adapter → `extractProduct` → `normalizeProduct`
+(taxonomy/gender/activity mapping; stamps `source_type='skechers_official_web'`,
+`source_url`, `source_identifier`, `source_version`/synced_at) → `buildImportPreview`
++ `planCommit` (this file's validation/dedupe/safe-approval) → **relationship rule
+engine** (walking→socks+care+premium upgrade · Slip-ins→no-show socks ·
+Work→slip-resistant upgrade · price tiers→lower/higher price option) → emit an
+**idempotent SQL script** (products upsert that updates only price/image on SKU
+conflict, provenance rows, a `catalogue_imports` batch record, and relationships)
+and optionally the demo module. Apply the SQL to a Supabase/staging DB (never
+production without review). Code: `scripts/skechers/`, `scripts/ingest-skechers.ts`;
+enum migration: `supabase/migrations/20260807120000_add_web_source_type.sql`.
+
+## Not in this phase (the base Phase 3 foundation)
+
+No product UI, no barcode scanning, no AI, no authentication, and **no scraping /
+website crawler**. Method 1 (above) adds the authorized ingestion pipeline but
+still performs **no live scraping** — the live web connector is a permission-gated
+seam, disabled by default (see `PROJECT_PLAN.md` §3a and the data-source roadmap).

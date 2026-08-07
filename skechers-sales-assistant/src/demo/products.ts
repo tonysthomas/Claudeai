@@ -2,6 +2,8 @@
 // Mirrors a subset of the synthetic seed. Images are inline data-URI SVGs so the
 // single-file demo needs no external assets.
 import type { Product } from '../types/db';
+import { INGESTED_PRODUCTS } from './ingested.generated';
+import type { IngestedDemoProduct } from './ingestedTypes';
 
 const svg = (label: string, bg: string, fg: string): string =>
   'data:image/svg+xml;utf8,' +
@@ -39,7 +41,23 @@ function make(p: Partial<Product> & Pick<Product, 'sku' | 'name' | 'category'>):
   };
 }
 
-export const DEMO_PRODUCTS: Product[] = [
+// Placeholder image by category for ingested (authorized-sample) real products —
+// we never hotlink skechers.com assets in the demo (image_url is referenced in
+// the DB only). Real name/price/features/technology are shown.
+const PLACEHOLDER_BY_CATEGORY: Record<string, string> = { socks: SOCK, shoe_care: CARE };
+
+function fromIngested(p: IngestedDemoProduct): Product {
+  return {
+    id: p.sku, sku: p.sku, barcode: null, style_number: p.style_number, name: p.name,
+    category: p.category, subcategory: p.subcategory, gender: p.gender ?? 'unisex', color: p.color,
+    size_range: p.size_range, price: p.price, currency: p.currency, region: p.region,
+    image_url: PLACEHOLDER_BY_CATEGORY[p.category] ?? SHOE, product_url: p.product_url,
+    description: p.description, key_features: p.key_features, technology: p.technology,
+    activity_type: p.activity_type, data_status: 'imported', approval_status: 'approved',
+  };
+}
+
+const BASE_DEMO_PRODUCTS: Product[] = [
   make({ sku: 'SHOE-WALK-001', style_number: 'STY-001', name: 'Demo Walk Comfort 1', category: 'shoes', subcategory: 'walking', color: 'Grey', price: 59.99, technology: 'Demo Air Cushion', activity_type: 'walking', image_url: SHOE, description: 'Synthetic demo walking shoe for everyday comfort.', key_features: ['Cushioned midsole', 'Breathable upper'] }),
   make({ sku: 'SHOE-WALK-002', style_number: 'STY-002', name: 'Demo Walk Comfort 2', category: 'shoes', subcategory: 'walking', color: 'Black', price: 89.99, technology: 'Demo Air Cushion Max', activity_type: 'walking', image_url: SHOE, description: 'Synthetic demo premium walking shoe with extra cushioning.', key_features: ['Max cushioning', 'Arch support'] }),
   make({ sku: 'SHOE-WORK-001', style_number: 'STY-003', name: 'Demo Work Cushion 1', category: 'shoes', subcategory: 'work', color: 'Black', price: 69.99, technology: 'Demo Slip Resist', activity_type: 'work', image_url: SHOE, description: 'Synthetic demo work shoe for long hours on your feet.', key_features: ['Slip resistant', 'All-day cushioning'] }),
@@ -55,6 +73,9 @@ export const DEMO_PRODUCTS: Product[] = [
   make({ sku: 'CARE-KIT-001', name: 'Demo Shoe Care Kit 1', category: 'shoe_care', subcategory: 'kit', size_range: null, price: 19.99, image_url: CARE, description: 'Synthetic demo shoe-care cleaning kit.', key_features: ['Cleaner', 'Brush', 'Cloth'] }),
   make({ sku: 'CARE-INSOLE-001', name: 'Demo Fresh Insole 1', category: 'shoe_care', subcategory: 'insole', size_range: 'US 7-12', price: 14.99, image_url: CARE, description: 'Synthetic demo cushioning insole for freshness.', key_features: ['Odor control', 'Extra cushion'] }),
 ];
+
+// Synthetic demo catalogue + any ingested (authorized-sample) real Skechers products.
+export const DEMO_PRODUCTS: Product[] = [...BASE_DEMO_PRODUCTS, ...INGESTED_PRODUCTS.map(fromIngested)];
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 

@@ -2,6 +2,7 @@
 import type { Product } from '../types/db';
 import type { RecommendationCandidate, RelationshipRow, RelationshipType } from '../features/recommendations/types';
 import { DEMO_PRODUCTS } from './products';
+import { INGESTED_EDGES } from './ingested.generated';
 
 const bySku = new Map(DEMO_PRODUCTS.map((p) => [p.sku, p]));
 
@@ -64,9 +65,35 @@ const EDGES: Record<string, RelationshipRow[]> = {
   ],
 };
 
+// Build edges for ingested (authorized-sample) real products, grouped by source
+// SKU. Region is taken from the source product so the engine's region filter
+// keeps them. approval_status 'approved' so they surface like real edges.
+const INGESTED_EDGE_MAP: Record<string, RelationshipRow[]> = (() => {
+  const map: Record<string, RelationshipRow[]> = {};
+  for (const e of INGESTED_EDGES) {
+    const src = bySku.get(e.source);
+    const row: RelationshipRow = {
+      id: `${e.source}->${e.target}:${e.type}`,
+      source_product_id: e.source,
+      target_product_id: e.target,
+      relationship_type: e.type as RelationshipType,
+      priority: e.priority,
+      reason: e.reason,
+      customer_benefit: e.benefit,
+      activity_type: null,
+      customer_need: e.need,
+      region: src?.region ?? 'DEMO',
+      active: true,
+      approval_status: 'approved',
+    };
+    (map[e.source] ??= []).push(row);
+  }
+  return map;
+})();
+
 export async function getRecommendationCandidates(product: Product): Promise<RecommendationCandidate[]> {
   await new Promise((r) => setTimeout(r, 200));
-  const edges = EDGES[product.sku] ?? [];
+  const edges = EDGES[product.sku] ?? INGESTED_EDGE_MAP[product.sku] ?? [];
   const out: RecommendationCandidate[] = [];
   for (const relationship of edges) {
     const target = bySku.get(relationship.target_product_id);

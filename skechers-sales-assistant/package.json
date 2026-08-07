@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "import:demo": "tsx scripts/run-import-demo.ts"
+    "import:demo": "tsx scripts/run-import-demo.ts",
+    "ingest:skechers": "tsx scripts/ingest-skechers.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",

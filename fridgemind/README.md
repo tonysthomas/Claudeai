@@ -45,10 +45,19 @@ that opens a guest account with no sign-up.
 
 ### Real AI vision & OCR (optional)
 
-Add an OpenAI API key in **Settings** to recognise real fridge photos and read
-real labels with `gpt-4o-mini` vision. The key is stored only in your browser
-and used only for those calls. Without a key, scanning runs in demo mode. Live
-API calls require the app to be served over HTTPS.
+Pick an AI provider in **Settings** and add its key to recognise real fridge
+photos and read real labels:
+
+| Provider | Model | Cost | Get a key |
+|---|---|---|---|
+| Google Gemini | `gemini-2.5-flash-lite` | Free tier (~1,500 scans/day) | [aistudio.google.com](https://aistudio.google.com/app/apikey) |
+| OpenRouter | `google/gemma-4-31b-it:free` | Free (~50 scans/day) | [openrouter.ai](https://openrouter.ai/keys) |
+| OpenAI | `gpt-4o-mini` | Paid | [platform.openai.com](https://platform.openai.com/api-keys) |
+
+Free providers come from [awesome-free-llm-apis](https://github.com/mnfst/awesome-free-llm-apis).
+Keys are stored only in your browser, one per provider, and used only for those
+calls. Without a key, scanning runs in demo mode. Live API calls require the app
+to be served over HTTPS.
 
 ### How it maps to the PRD data model
 

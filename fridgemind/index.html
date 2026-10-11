@@ -513,9 +513,14 @@
 
     <div class="section-title">AI vision & OCR (optional)</div>
     <div class="card">
-      <p class="muted" style="margin:0 0 12px; font-size:13px">Add an OpenAI key to recognise real photos and read expiry labels. Without one, scanning runs in demo mode. Your key stays only in this browser.</p>
+      <p class="muted" style="margin:0 0 12px; font-size:13px">Add an AI key to recognise real photos and read expiry labels — Google Gemini has a free tier. Without one, scanning runs in demo mode. Your key stays only in this browser.</p>
       <div class="field">
-        <label>OpenAI API key</label>
+        <label>AI provider</label>
+        <select id="setProvider"></select>
+        <p class="muted" id="providerHint" style="margin:6px 0 0; font-size:12px"></p>
+      </div>
+      <div class="field">
+        <label>API key</label>
         <input id="setKey" type="password" placeholder="sk-..." />
       </div>
       <button class="btn block" id="saveKey">Save key</button>
@@ -921,7 +926,42 @@ function downscale(file, max) {
     img.src = url;
   });
 }
-function apiReady() { return store.settings.key && location.protocol === "https:"; }
+/* Vision providers — all OpenAI-compatible chat completions. Free tiers from
+   github.com/mnfst/awesome-free-llm-apis. */
+const VISION = {
+  gemini: { label: "Google Gemini — free tier", url: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+    model: "gemini-2.5-flash-lite", keyHint: "AIza…", keyUrl: "https://aistudio.google.com/app/apikey",
+    note: "Free, no card. ~30 scans/min, 1,500/day. Free-tier images may be used by Google to improve products." },
+  openrouter: { label: "OpenRouter — free model", url: "https://openrouter.ai/api/v1/chat/completions",
+    model: "google/gemma-4-31b-it:free", keyHint: "sk-or-…", keyUrl: "https://openrouter.ai/keys",
+    note: "Free, no card. ~50 scans/day." },
+  openai: { label: "OpenAI — paid", url: "https://api.openai.com/v1/chat/completions",
+    model: "gpt-4o-mini", keyHint: "sk-…", keyUrl: "https://platform.openai.com/api-keys",
+    note: "Pay-as-you-go. gpt-4o-mini vision." },
+};
+function aiProvider() { const p = store.settings.provider; return VISION[p] ? p : (store.settings.key ? "openai" : "gemini"); }
+function aiKey(p = aiProvider()) { const k = (store.settings.keys || {})[p]; return k !== undefined ? k : (p === "openai" ? store.settings.key || "" : ""); }
+function apiReady() { return !!aiKey() && location.protocol === "https:"; }
+
+async function visionChat(prompt, dataUri, maxTokens) {
+  const prov = aiProvider(), P = VISION[prov];
+  const headers = { "Content-Type":"application/json", "Authorization":"Bearer "+aiKey() };
+  if (prov === "openrouter") { headers["HTTP-Referer"] = location.origin; headers["X-Title"] = "FridgeMind AI"; }
+  const res = await fetch(P.url, {
+    method: "POST", headers,
+    body: JSON.stringify({
+      model: P.model,
+      messages: [{ role: "user", content: [
+        { type: "text", text: prompt },
+        { type: "image_url", image_url: { url: dataUri } },
+      ] }],
+      max_tokens: maxTokens,
+    }),
+  });
+  if (!res.ok) throw new Error("api");
+  const data = await res.json();
+  return (data.choices?.[0]?.message?.content || "").trim();
+}
 
 /* ---------- Grocery photo recognition ---------- */
 $("#photoInput").addEventListener("change", async e => {
@@ -931,7 +971,7 @@ $("#photoInput").addEventListener("change", async e => {
     toast("Analysing photo…");
     try {
       const b64 = await downscale(file, 768);
-      const items = await recognizeWithOpenAI(b64, store.settings.key);
+      const items = await recognizeWithAI(b64);
       showRecognition(items, true);
     } catch (err) {
       showRecognition(demoRecognition(), false, "Couldn't reach the vision model — showing a demo result.");
@@ -949,25 +989,8 @@ function demoRecognition() {
   return picked;
 }
 
-async function recognizeWithOpenAI(dataUri, key) {
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: { "Content-Type":"application/json", "Authorization":"Bearer "+key },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [{
-        role: "user",
-        content: [
-          { type: "text", text: "List the distinct food items visible in this fridge/grocery photo. Reply ONLY with a comma-separated list of item names, no quantities, no extra words." },
-          { type: "image_url", image_url: { url: dataUri } },
-        ],
-      }],
-      max_tokens: 120,
-    }),
-  });
-  if (!res.ok) throw new Error("api");
-  const data = await res.json();
-  const text = (data.choices?.[0]?.message?.content || "").trim();
+async function recognizeWithAI(dataUri) {
+  const text = await visionChat("List the distinct food items visible in this fridge/grocery photo. Reply ONLY with a comma-separated list of item names, no quantities, no extra words.", dataUri, 300);
   return text.split(/[,\n]/).map(s => s.replace(/^[-•\d.\s]+/,"").trim()).filter(Boolean).slice(0,8);
 }
 
@@ -1014,7 +1037,7 @@ $("#labelInput").addEventListener("change", async e => {
     toast("Reading label…");
     try {
       const b64 = await downscale(file, 900);
-      const data = await ocrWithOpenAI(b64, store.settings.key);
+      const data = await ocrWithAI(b64);
       openManualAdd(ocrToPrefill(data, thumb, true));
     } catch (err) {
       openManualAdd(ocrToPrefill(demoOcr(), thumb, false, "Couldn't reach the model — demo reading shown."));
@@ -1031,25 +1054,9 @@ function demoOcr() {
   return { brand, product, expiry: iso(addDays(today(), 7+Math.floor(Math.random()*10))), manufacture: iso(addDays(today(), -(2+Math.floor(Math.random()*4)))) };
 }
 
-async function ocrWithOpenAI(dataUri, key) {
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: { "Content-Type":"application/json", "Authorization":"Bearer "+key },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [{
-        role: "user",
-        content: [
-          { type: "text", text: "Read this food product label. Return ONLY compact JSON with keys brand, product, expiry, manufacture. Dates as YYYY-MM-DD, or null if not visible. No prose, no code fence." },
-          { type: "image_url", image_url: { url: dataUri } },
-        ],
-      }],
-      max_tokens: 160,
-    }),
-  });
-  if (!res.ok) throw new Error("api");
-  const data = await res.json();
-  let text = (data.choices?.[0]?.message?.content || "").trim().replace(/^```(json)?/i,"").replace(/```$/,"").trim();
+async function ocrWithAI(dataUri) {
+  const text = (await visionChat("Read this food product label. Return ONLY compact JSON with keys brand, product, expiry, manufacture. Dates as YYYY-MM-DD, or null if not visible. No prose, no code fence.", dataUri, 400))
+    .replace(/^```(json)?/i,"").replace(/```$/,"").trim();
   try { return JSON.parse(text); } catch(e) { return {}; }
 }
 
@@ -1200,8 +1207,17 @@ $("#saveSettings").addEventListener("click", () => {
   save(); toast("Settings saved"); go("home");
 });
 $("#saveKey").addEventListener("click", () => {
-  store.settings.key = $("#setKey").value.trim(); save(); toast(store.settings.key?"Key saved 🔐":"Key cleared");
+  const p = $("#setProvider").value, k = $("#setKey").value.trim();
+  store.settings.provider = p; store.settings.keys = { ...(store.settings.keys || {}), [p]: k };
+  save(); toast(k ? VISION[p].label.split(" —")[0] + " key saved 🔐" : "Key cleared");
 });
+function fillProvider(p) {
+  const P = VISION[p];
+  $("#setKey").value = aiKey(p); $("#setKey").placeholder = P.keyHint;
+  $("#providerHint").innerHTML = `${P.note} <a href="${P.keyUrl}" target="_blank" rel="noopener">Get a key →</a>`;
+}
+$("#setProvider").innerHTML = Object.entries(VISION).map(([id,P]) => `<option value="${id}">${P.label}</option>`).join("");
+$("#setProvider").addEventListener("change", e => fillProvider(e.target.value));
 $("#seedBtn").addEventListener("click", () => { seed(); toast("Demo fridge loaded"); go("home"); });
 $("#resetBtn").addEventListener("click", () => {
   if (confirm("Clear all fridge items and history?")) { store.items=[]; store.history=[]; store.seeded=false; save(); toast("Cleared"); go("home"); }
@@ -1211,7 +1227,7 @@ function loadSettingsForm() {
   $("#setName").value = store.settings.name === "there" ? "" : store.settings.name;
   $("#setCurrency").value = store.settings.currency;
   $("#setItemValue").value = store.settings.itemValue;
-  $("#setKey").value = store.settings.key || "";
+  $("#setProvider").value = aiProvider(); fillProvider(aiProvider());
   const u = currentUser();
   $("#accountInfo").innerHTML = u
     ? `Signed in as <b>${escapeHtml(u.name)}</b><br>${escapeHtml(u.email)}`

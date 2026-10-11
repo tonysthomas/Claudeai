@@ -29,7 +29,17 @@ Things to try: *"Brief me"* · *"What's my plan today?"* · *"How am I doing?"* 
 
 ### Two brains
 - **Local brain (default):** works offline, no keys. Knows the plan and answers the common questions, updates metrics, logs notes, marks posts done.
-- **Claude (optional):** add an Anthropic API key in **⚙ Settings** to unlock open-ended conversation, nuanced feedback and content drafting. The key is stored only in your browser. Live API calls need the app served from a real web host (a preview sandbox will fall back to the local brain automatically).
+- **Live AI (optional):** pick a provider in **⚙ Settings** and add its key to unlock open-ended conversation, nuanced feedback and content drafting. Keys are stored only in your browser, one per provider. Live API calls need the app served from a real web host (a preview sandbox will fall back to the local brain automatically).
+
+| Provider | Cost | Free limits (approx.) | Get a key |
+|---|---|---|---|
+| Claude (Anthropic) | Paid | — | [console.anthropic.com](https://console.anthropic.com/settings/keys) |
+| Google Gemini | Free tier | 15 req/min, 1,500/day | [aistudio.google.com](https://aistudio.google.com/app/apikey) |
+| Groq | Free tier | 30 req/min, 1,000/day | [console.groq.com](https://console.groq.com/keys) |
+| OpenRouter (`:free` models) | Free | 20 req/min, 50/day | [openrouter.ai](https://openrouter.ai/keys) |
+| Mistral AI | Free mode | ~1 req/sec | [console.mistral.ai](https://console.mistral.ai/api-keys) |
+
+Free providers come from [awesome-free-llm-apis](https://github.com/mnfst/awesome-free-llm-apis). Gemini and Mistral free tiers may use your prompts to improve their models.
 
 ## Running it
 
@@ -41,7 +51,7 @@ It's a single self-contained file — no build step.
 ## Notes
 
 - **Voice support:** speech recognition works in Chromium browsers (Chrome, Edge). Speech synthesis works everywhere. Pick a British male voice in Settings for the full Jarvis effect.
-- **Your data** (task progress, metrics, logs, settings) lives in `localStorage` in your browser — nothing is sent anywhere unless you add an API key.
+- **Your data** (task progress, metrics, logs, settings) lives in `localStorage` in your browser — nothing is sent anywhere unless you add an AI provider key.
 - Built on the brand palette: Navy `#0c1a2b` · aha-blue `#5ab0ff` · stop-orange `#ff7a59`.
 
 ---

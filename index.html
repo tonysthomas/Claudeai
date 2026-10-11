@@ -600,17 +600,18 @@ textarea:focus,.txin:focus{outline:none;border-color:var(--cyan)}
     </div>
 
     <div class="field">
-      <label>Claude API key — optional (unlocks full conversation)</label>
-      <input id="setKey" type="password" placeholder="sk-ant-…  leave blank to use the built-in brain" />
-      <div class="hint">Without a key, Jarvis runs a built-in brain that knows your whole plan and answers the common questions offline. Add an Anthropic key to let Jarvis discuss freely, give nuanced feedback and draft content. The key never leaves your browser. <b>Note:</b> live API calls need the app served from a normal web host — inside the preview sandbox Jarvis falls back to the local brain automatically.</div>
+      <label>AI provider</label>
+      <select id="setProvider" onchange="Settings.onProvider()"></select>
+      <div class="hint" id="providerHint"></div>
+    </div>
+    <div class="field">
+      <label>API key — optional (unlocks full conversation)</label>
+      <input id="setKey" type="password" placeholder="leave blank to use the built-in brain" />
+      <div class="hint">Without a key, Jarvis runs a built-in brain that knows your whole plan and answers the common questions offline. Add a key to let Jarvis discuss freely, give nuanced feedback and draft content. Each provider keeps its own key, stored only in your browser. <b>Note:</b> live API calls need the app served from a normal web host — inside the preview sandbox Jarvis falls back to the local brain automatically.</div>
     </div>
     <div class="field">
       <label>Model</label>
-      <select id="setModel">
-        <option value="claude-sonnet-5">Claude Sonnet 5 — fast, recommended</option>
-        <option value="claude-opus-4-8">Claude Opus 4.8 — deepest reasoning</option>
-        <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 — quickest</option>
-      </select>
+      <select id="setModel"></select>
     </div>
 
     <div class="modal-actions">
@@ -830,10 +831,34 @@ const DEFAULT_STATE = {
   metrics:{posts:0, subs:0, linkedin:0, outsized:0, saveTrend:false, ebook:false, dm:false},
   logs:[],
   social:{},
-  settings:{apiKey:"", model:"claude-sonnet-5", voiceURI:"", rate:1, speak:true, theme:""}
+  settings:{provider:"anthropic", keys:{}, models:{}, apiKey:"", model:"claude-sonnet-5", voiceURI:"", rate:1, speak:true, theme:""}
 };
+
+/* AI providers — Claude plus free-tier, browser-callable, OpenAI-compatible APIs
+   (sourced from github.com/mnfst/awesome-free-llm-apis). */
+const PROVIDERS = {
+  anthropic:{ label:"Claude (Anthropic) — paid", keyUrl:"https://console.anthropic.com/settings/keys", keyHint:"sk-ant-…",
+    note:"Best quality. Pay-as-you-go API key.",
+    models:[["claude-sonnet-5","Claude Sonnet 5 — fast, recommended"],["claude-opus-4-8","Claude Opus 4.8 — deepest reasoning"],["claude-haiku-4-5-20251001","Claude Haiku 4.5 — quickest"]] },
+  gemini:{ label:"Google Gemini — free tier", url:"https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", keyUrl:"https://aistudio.google.com/app/apikey", keyHint:"AIza…",
+    note:"Free, no card. ~15 requests/min, 1,500/day. Free-tier prompts may be used by Google to improve products.",
+    models:[["gemini-2.5-flash","Gemini 2.5 Flash — recommended"],["gemini-2.5-flash-lite","Gemini 2.5 Flash-Lite — quickest"],["gemini-2.5-pro","Gemini 2.5 Pro — deepest (50/day)"]] },
+  groq:{ label:"Groq — free tier", url:"https://api.groq.com/openai/v1/chat/completions", keyUrl:"https://console.groq.com/keys", keyHint:"gsk_…",
+    note:"Free, no card. Very fast. ~30 requests/min, 1,000/day.",
+    models:[["openai/gpt-oss-120b","GPT-OSS 120B — recommended"],["openai/gpt-oss-20b","GPT-OSS 20B — quickest"],["qwen/qwen3.8-27b","Qwen 3.8 27B"]] },
+  openrouter:{ label:"OpenRouter — free models", url:"https://openrouter.ai/api/v1/chat/completions", keyUrl:"https://openrouter.ai/keys", keyHint:"sk-or-…",
+    note:"Free “:free” models, no card. ~20 requests/min, 50/day.",
+    models:[["nvidia/nemotron-3-super-120b-a12b:free","Nemotron 3 Super 120B"],["google/gemma-4-31b-it:free","Gemma 4 31B"],["qwen/qwen3.8-27b:free","Qwen 3.8 27B"]] },
+  mistral:{ label:"Mistral AI — free mode", url:"https://api.mistral.ai/v1/chat/completions", keyUrl:"https://console.mistral.ai/api-keys", keyHint:"",
+    note:"Free mode, no card. ~1 request/sec. Prompts may be used for training unless you opt out.",
+    models:[["mistral-medium-3-5","Mistral Medium 3.5 — recommended"],["mistral-small-2603","Mistral Small 4 — quickest"],["mistral-large-2512","Mistral Large 3"]] }
+};
+const aiProvider=()=>PROVIDERS[State.settings.provider]?State.settings.provider:"anthropic";
+const aiKey=()=>(State.settings.keys||{})[aiProvider()]||"";
+const aiModel=()=>(State.settings.models||{})[aiProvider()]||PROVIDERS[aiProvider()].models[0][0];
 const LS_KEY="itsai_jarvis_v1";
 let State = load();
+if(State.settings.apiKey && !State.settings.keys.anthropic){ State.settings.keys.anthropic=State.settings.apiKey; State.settings.models.anthropic=State.settings.model; }
 function load(){ try{ const s=JSON.parse(localStorage.getItem(LS_KEY)); return s?deepMerge(structuredClone(DEFAULT_STATE),s):structuredClone(DEFAULT_STATE);}catch(e){return structuredClone(DEFAULT_STATE);} }
 function save(){ localStorage.setItem(LS_KEY, JSON.stringify(State)); }
 function deepMerge(t,s){ for(const k in s){ if(s[k]&&typeof s[k]==="object"&&!Array.isArray(s[k])){ t[k]=deepMerge(t[k]||{},s[k]);} else t[k]=s[k]; } return t; }
@@ -1276,7 +1301,7 @@ const Jarvis = {
     this.history.push({role:"user",content:text});
     $("#dockInput").value="";
     // If API key present and not sandboxed, go to Claude; else local brain.
-    if(State.settings.apiKey && !IS_SANDBOX){
+    if(aiKey() && !IS_SANDBOX){
       this.askClaude(text);
     } else {
       const r=this.localAnswer(text);
@@ -1422,7 +1447,7 @@ const Jarvis = {
         <li>Tell me feedback: "the 8pm carousel flopped" or "that reel got loads of saves" — I'll respond and log it</li>
         <li>"I have 40 subscribers" — I'll update the tracker</li>
         <li>"Mark the reel done" · "Log: 14 saves in the first hour"</li></ul>
-        <p class="muted">Add a Claude API key in settings for fully open-ended conversation and content drafting.</p>`,
+        <p class="muted">Add an AI key in settings (Claude, or a free one from Gemini, Groq, OpenRouter or Mistral) for fully open-ended conversation and content drafting.</p>`,
         speak:"We talk both ways. Ask me to brief you or for today's or tomorrow's posts, tell me how a post did and I'll respond and log it, ask how you're doing then say tell me more, or give me your numbers to track."};
     }
 
@@ -1570,14 +1595,7 @@ Help him stay focused on the day's plan, give honest feedback against the Phase-
     const tp=this.typing();
     try{
       const msgs=this.history.slice(-12).map(m=>({role:m.role,content:m.content}));
-      const res=await fetch("https://api.anthropic.com/v1/messages",{
-        method:"POST",
-        headers:{"content-type":"application/json","x-api-key":State.settings.apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-        body:JSON.stringify({model:State.settings.model||"claude-sonnet-5",max_tokens:700,system:this.systemPrompt(),messages:msgs})
-      });
-      if(!res.ok){ throw new Error("HTTP "+res.status); }
-      const data=await res.json();
-      const reply=(data.content||[]).map(c=>c.text||"").join("").trim()||"…";
+      const reply=(await callAI(this.systemPrompt(), msgs)).trim()||"…";
       tp.remove();
       const html=reply.split(/\n\n+/).map(p=>`<p>${esc(p).replace(/\n/g,"<br>")}</p>`).join("");
       this.say(html, reply);
@@ -1591,6 +1609,30 @@ Help him stay focused on the day's plan, give honest feedback against the Phase-
     }
   }
 };
+
+async function callAI(system, msgs){
+  const prov=aiProvider(), P=PROVIDERS[prov], key=aiKey(), model=aiModel();
+  if(prov==="anthropic"){
+    const res=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"content-type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+      body:JSON.stringify({model,max_tokens:700,system,messages:msgs})
+    });
+    if(!res.ok){ throw new Error("HTTP "+res.status); }
+    const data=await res.json();
+    return (data.content||[]).map(c=>c.text||"").join("");
+  }
+  // OpenAI-compatible chat completions (Gemini, Groq, OpenRouter, Mistral)
+  const headers={"content-type":"application/json","authorization":"Bearer "+key};
+  if(prov==="openrouter"){ headers["HTTP-Referer"]=location.origin; headers["X-Title"]="Jarvis · It's AI Education"; }
+  const res=await fetch(P.url,{
+    method:"POST", headers,
+    body:JSON.stringify({model,max_tokens:700,messages:[{role:"system",content:system},...msgs]})
+  });
+  if(!res.ok){ throw new Error("HTTP "+res.status); }
+  const data=await res.json();
+  return data.choices?.[0]?.message?.content||"";
+}
 
 /* ============================================================
    ORB — reactive canvas
@@ -1646,20 +1688,30 @@ function applyTheme(){
 }
 
 const Settings={
-  open(){ $("#setName").value=State.name||""; $("#setKey").value=State.settings.apiKey||"";
-    $("#setModel").value=State.settings.model||"claude-sonnet-5"; $("#setRate").value=State.settings.rate||1;
+  open(){ $("#setName").value=State.name||"";
+    $("#setProvider").innerHTML=Object.entries(PROVIDERS).map(([id,p])=>`<option value="${id}">${esc(p.label)}</option>`).join("");
+    $("#setProvider").value=aiProvider(); this.draft={keys:{...State.settings.keys}, models:{...State.settings.models}}; this.cur=aiProvider(); this.fill();
+    $("#setRate").value=State.settings.rate||1;
     Voice.populate(); $("#settingsModal").classList.add("open"); },
   close(){ $("#settingsModal").classList.remove("open"); },
+  stash(){ this.draft.keys[this.cur]=$("#setKey").value.trim(); this.draft.models[this.cur]=$("#setModel").value; },
+  fill(){ const P=PROVIDERS[this.cur];
+    $("#setModel").innerHTML=P.models.map(([v,l])=>`<option value="${esc(v)}">${esc(l)}</option>`).join("");
+    $("#setModel").value=this.draft.models[this.cur]||P.models[0][0];
+    $("#setKey").value=this.draft.keys[this.cur]||""; $("#setKey").placeholder=(P.keyHint?P.keyHint+"  ":"")+"leave blank to use the built-in brain";
+    $("#providerHint").innerHTML=`${esc(P.note)} <a href="${P.keyUrl}" target="_blank" rel="noopener" style="color:var(--cyan)">Get a key →</a>`; },
+  onProvider(){ this.stash(); this.cur=$("#setProvider").value; this.fill(); },
   save(){
     State.name=$("#setName").value.trim()||"Tony";
-    State.settings.apiKey=$("#setKey").value.trim();
-    State.settings.model=$("#setModel").value;
+    this.stash();
+    State.settings.provider=this.cur; State.settings.keys=this.draft.keys; State.settings.models=this.draft.models;
+    State.settings.apiKey=""; State.settings.model="";
     State.settings.voiceURI=$("#setVoice").value;
     State.settings.rate=parseFloat($("#setRate").value)||1;
     save(); this.close(); App.renderAll(); updateBrainMode(); toast("Settings saved");
   }
 };
-function updateBrainMode(){ $("#brainMode").textContent = (State.settings.apiKey && !IS_SANDBOX)?"CLAUDE "+(State.settings.model||"").replace("claude-","").toUpperCase():"LOCAL BRAIN"; }
+function updateBrainMode(){ $("#brainMode").textContent = (aiKey() && !IS_SANDBOX)?(aiProvider()==="anthropic"?"CLAUDE ":aiProvider().toUpperCase()+" · ")+aiModel().replace("claude-","").replace(/^.*\//,"").replace(":free","").toUpperCase():"LOCAL BRAIN"; }
 
 // Detect artifact/sandbox (CSP blocks external fetch). Heuristic: if we can't reach api later we fall back anyway.
 const IS_SANDBOX = (()=>{ try{ return window.location.hostname.includes("usercontent")||window.location.protocol==="blob:"; }catch(e){ return false; } })();

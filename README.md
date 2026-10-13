@@ -15,6 +15,7 @@ Jarvis has the entire project loaded — the strategy, the Phase 1 working plan,
 | **This Week** | The week's curriculum focus, the Sun→Fri production rhythm, and every post in the week. |
 | **Academy** | The 5-level pyramid (Fluency → Application → Adoption → Governance → Leadership) with modules, audiences, outcomes and certifications, plus the content→revenue map. |
 | **Strategy** | Purpose / vision / mission, the founder edge, three pillars, the four phases, the revenue model, non-negotiables and market signal. |
+| **Founder Skills** | A 10-skill founder capability model (Create · Grow · Build · Earn · Run). Self-rate 1–5 against level descriptors; targets shift by phase. Jarvis weights each gap by phase priority and sets one weekly focus skill with a drill and a KPI as proof. |
 | **Phase Gate** | The seven "must be true by 31 Aug" conditions with live progress meters — update your numbers and Jarvis reflects them everywhere. |
 | **Daily Log** | Tell Jarvis how the day went or log a change to the strategy/plan. Everything feeds tomorrow's brief. |
 | **Social** | Phase-2 scaffold for live channel intelligence (Instagram, LinkedIn, YouTube, Email). |
@@ -25,7 +26,7 @@ Jarvis has the entire project loaded — the strategy, the Phase 1 working plan,
 - **Or type** in the dock at the bottom.
 - Jarvis **speaks its replies** (toggle the 🔊 button to mute).
 
-Things to try: *"Brief me"* · *"What's my plan today?"* · *"How am I doing?"* · *"Read me the strategy"* · *"Explain the five levels"* · *"I have 40 subscribers"* (updates the tracker) · *"Log: posted the settings carousel, 14 saves"*.
+Things to try: *"Brief me"* · *"What's my plan today?"* · *"How am I doing?"* · *"Read me the strategy"* · *"Explain the five levels"* · *"I have 40 subscribers"* (updates the tracker) · *"Log: posted the settings carousel, 14 saves"* · *"What skill should I work on?"*.
 
 ### Two brains
 - **Local brain (default):** works offline, no keys. Knows the plan and answers the common questions, updates metrics, logs notes, marks posts done.

@@ -278,6 +278,16 @@ ul.clean li::before{content:"›";position:absolute;left:4px;color:var(--cyan);f
 .mini-btn.primary{background:var(--cyan);color:var(--bg-2);border-color:var(--cyan);font-weight:600}
 :root[data-theme="light"] .mini-btn.primary{color:#fff}
 .toggle{display:inline-flex;gap:6px}
+.skill{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--panel-2);margin-bottom:12px}
+.skill-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+.skill-head h4{margin:0;font-size:14.5px}
+.skill .why{font-size:12.5px;color:var(--ink-2);margin:6px 0 8px}
+.skill .lvl-desc{font-size:12px;color:var(--ink-3);margin:8px 0 0}
+.skill .drill{font-size:12.5px;margin:8px 0 0;color:var(--ink-2)}
+.rate{display:inline-flex;gap:4px}
+.rate button{width:28px;height:28px;border-radius:7px;border:1px solid var(--line);background:var(--bg-2);color:var(--ink-2);font-family:var(--mono);font-size:12px;cursor:pointer}
+.rate button.on{background:var(--cyan);border-color:var(--cyan);color:#0c1a2b;font-weight:700}
+.rate button.tgt{box-shadow:inset 0 -2px 0 var(--warn)}
 .toggle button{padding:6px 12px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink-3);border-radius:8px;cursor:pointer;font-family:var(--mono);font-size:11px}
 .toggle button.on{background:var(--good);color:var(--bg-2);border-color:var(--good)}
 
@@ -392,6 +402,7 @@ textarea:focus,.txin:focus{outline:none;border-color:var(--cyan)}
     <button data-view="week">▤ This Week</button>
     <button data-view="academy">▲ Academy</button>
     <button data-view="strategy">✦ Strategy</button>
+    <button data-view="skills">◆ Founder Skills</button>
     <button data-view="gate">◈ Phase Gate</button>
     <button data-view="log">✎ Daily Log</button>
     <button data-view="social">⇄ Social</button>
@@ -503,6 +514,21 @@ textarea:focus,.txin:focus{outline:none;border-color:var(--cyan)}
 
     <h3 class="section-title">Market signal</h3>
     <div class="tiles" id="marketTiles"></div>
+  </section>
+
+  <!-- ============ FOUNDER SKILLS ============ -->
+  <section class="view" id="view-skills">
+    <div class="panel" style="margin-bottom:16px">
+      <div class="eyebrow">Founder capability model · rate yourself 1–5</div>
+      <h2 id="skillsVerdict">Founder skills</h2>
+      <p class="muted" style="font-size:13.5px;margin:6px 0 0;max-width:70ch">Ten skills the business needs from its founder, each with a target for the current phase. Rate honestly against the level descriptors. Jarvis weights each gap by phase priority and picks one skill to build this week — one drill, one measurable proof.</p>
+    </div>
+    <div class="tiles" id="skillTiles"></div>
+    <h3 class="section-title">This week's focus</h3>
+    <div class="panel" id="skillFocus"></div>
+    <h3 class="section-title">The ten founder skills</h3>
+    <div class="toggle" id="skillPhaseToggle" style="margin:0 4px 12px"></div>
+    <div id="skillList"></div>
   </section>
 
   <!-- ============ GATE ============ -->
@@ -717,6 +743,39 @@ const KB = {
     {w:5, range:"17–23 Aug", focus:"AI Sentences → AI Paragraphs — first workflows and the SME-adjacent turn. Build lead magnet 2 (AI tool audit checklist).", cta:"Keyword on 1 in 4 · Save on all checklists"},
     {w:6, range:"24–31 Aug", focus:"AI Paragraphs → first AI Essays — governance in plain English, then the phase gate.", cta:"Keyword on 1 in 3 · Follow on reach posts"},
   ],
+  // ---- Founder skills: target per phase (P1..P4), level descriptors 1/3/5 ----
+  founderSkills:[
+    {id:"content", grp:"Create", name:"Content craft — hooks & scripting", why:"Every post solves one small problem. The hook decides whether anyone sees the lesson.", tgt:[4,4,4,5],
+      l1:"Writes topics, not hooks. Posts read like notes.", l3:"Verb-led hooks, one idea per post, passes the three tests most days.", l5:"Has 3+ proven hook patterns that reliably out-save the average.",
+      drill:"Write 10 hooks for tomorrow's topic, pick 1. Sunday: rank last week's posts by save rate.", kpi:"Save rate trend · outsized-reach posts (gate: 3+)"},
+    {id:"camera", grp:"Create", name:"On-camera presence", why:"Tony is the brand; the avatar is the assistant. LinkedIn and YouTube are face-led.", tgt:[3,4,5,5],
+      l1:"Avoids camera or reads from script.", l3:"Records in 1–2 takes, natural pace, clear opening line.", l5:"Holds a room live — webinars, keynotes, workshops.",
+      drill:"Record one 45-second talking-head explainer a day. Watch it back once; fix one thing.", kpi:"Avg watch time on reels · LinkedIn video comments"},
+    {id:"growth", grp:"Grow", name:"Audience growth & distribution", why:"Masses-first for reach. Without distribution, great content is invisible.", tgt:[4,4,4,4],
+      l1:"Posts and leaves.", l3:"Posts in the 7–9 PM GST window, replies within 2 hours, cross-posts to LinkedIn.", l5:"Runs collabs, comment strategy and repurposing as a system.",
+      drill:"15 minutes after each post: reply to every comment, leave 10 value comments on peer accounts.", kpi:"Followers/week · LinkedIn posts (gate: 12+)"},
+    {id:"funnel", grp:"Grow", name:"Email & funnel building", why:"The list is the asset that outlives the feeds. Phase 1's hardest number.", tgt:[3,4,4,4],
+      l1:"No capture path.", l3:"Keyword → DM → lead magnet → email flow tested end-to-end.", l5:"Segmented list, nurture sequence, measured conversion per magnet.",
+      drill:"Test the ManyChat DM flow yourself twice a week. Add one welcome email this week.", kpi:"Email subscribers (gate: 150+) · DM automation reliable"},
+    {id:"data", grp:"Grow", name:"Data & decision-making", why:"Double down on what works, cut what doesn't — weekly, not by feel.", tgt:[3,4,4,4],
+      l1:"Checks likes occasionally.", l3:"Logs saves, reach and follows per post; reviews weekly.", l5:"Runs deliberate A/B tests on hooks and formats; decisions trace to data.",
+      drill:"Friday: update the tracking sheet, write one sentence on what to repeat and one on what to stop.", kpi:"Weekly review logged · save-rate trend"},
+    {id:"ai", grp:"Build", name:"AI tooling & automation", why:"The founder must practise what the academy teaches — and buy back hours.", tgt:[4,4,4,5],
+      l1:"Uses ChatGPT ad hoc.", l3:"Repeatable workflows for scripting, design and DMs (Claude, HeyGen, ManyChat).", l5:"Automated pipeline (n8n) from idea → draft → schedule → report.",
+      drill:"Automate one recurring task this week. Log hours saved.", kpi:"Hours/week on production · automations live"},
+    {id:"governance", grp:"Build", name:"AI governance expertise", why:"Governance is the wedge — weakest pillar across every competitor, with the EU AI Act deadline behind it.", tgt:[3,4,5,5],
+      l1:"Knows the headlines.", l3:"Explains risk tiers, roles and the one-page policy in plain English.", l5:"Credentialed (IAPP AIGP) and advising SMEs on real policies.",
+      drill:"One governance source read and turned into one plain-English post per week.", kpi:"Governance post saves · AIGP study hours"},
+    {id:"offer", grp:"Earn", name:"Offer design & pricing", why:"Phase 2 sells digital products at $19–49. Products must come from proven, high-save content.", tgt:[2,4,4,5],
+      l1:"No product idea tied to evidence.", l3:"Ebook outline built from top-saved posts, price tested with the list.", l5:"Product ladder: ebook → workshop → certification, each with a clear outcome.",
+      drill:"Tag every post that beats the save average as 'ebook candidate'.", kpi:"Ebook outline drafted (gate) · pre-sale interest"},
+    {id:"sales", grp:"Earn", name:"B2B selling & partnerships", why:"LinkedIn closes the money: SME and corporate training, consulting.", tgt:[2,3,4,5],
+      l1:"Waits for inbound.", l3:"Runs discovery calls with a probing framework; sends one-page proposals.", l5:"Predictable pipeline of corporate deals and referral partners in the GCC.",
+      drill:"Phase 1: map 20 target SMEs/HR leads in UAE/KSA. No pitching — just engage with their posts.", kpi:"Target list built · discovery calls booked (Phase 3)"},
+    {id:"ops", grp:"Run", name:"Focus, systems & energy", why:"A solo founder's scarcest resource is attention. Batch, never improvise daily.", tgt:[4,4,4,4],
+      l1:"Creates daily, reactively.", l3:"Holds the Sun→Fri rhythm most weeks; content is 3+ days ahead.", l5:"A week of content banked; runs the business, not just the feed.",
+      drill:"Protect the Sunday write block. Never start a day without tomorrow's post drafted.", kpi:"Days of content in the bank · posts published on schedule"},
+  ],
   gate:[
     {key:"posts", label:"40+ posts published", sub:"target 60–75", target:40, stretch:65, unit:"", type:"num"},
     {key:"subs", label:"150+ email subscribers", sub:"the list is the asset", target:150, stretch:150, unit:"", type:"num"},
@@ -830,6 +889,7 @@ const DEFAULT_STATE = {
   metrics:{posts:0, subs:0, linkedin:0, outsized:0, saveTrend:false, ebook:false, dm:false},
   logs:[],
   social:{},
+  skills:{},
   settings:{apiKey:"", model:"claude-sonnet-5", voiceURI:"", rate:1, speak:true, theme:""}
 };
 const LS_KEY="itsai_jarvis_v1";
@@ -879,6 +939,16 @@ function gateStatus(){
   res.metCount = vals.filter(v=>v>=100).length;
   return res;
 }
+function skillPhase(){ return State.skillPhase||1; }
+function skillGaps(ph=skillPhase()){
+  // priority-weighted gap: (target - rating), heavier where the target is high for this phase
+  return KB.founderSkills.map(s=>{ const r=State.skills[s.id]||0, tg=s.tgt[ph-1];
+    return {s, r, tg, gap:Math.max(0,tg-r), score:r?Math.max(0,tg-r)*tg:0}; });
+}
+function skillFocus(){
+  const g=skillGaps().filter(x=>x.r).sort((a,b)=>b.score-a.score);
+  return g.length&&g[0].gap>0?g[0]:null;
+}
 function pct(v,t){ return Math.max(0,Math.min(100,Math.round((v/t)*100))); }
 function publishedCount(){ return Object.keys(State.done).filter(k=>State.done[k]&&KB.daily.find(p=>p.id===k&&p.time)).length; }
 
@@ -899,7 +969,7 @@ const App = {
   },
   renderAll(){
     this.renderCommand(); this.renderToday(); this.renderWeek();
-    this.renderAcademy(); this.renderStrategy(); this.renderGate(); this.renderLog(); this.renderSocial();
+    this.renderAcademy(); this.renderStrategy(); this.renderSkills(); this.renderGate(); this.renderLog(); this.renderSocial();
     $("#navToday").textContent = postsFor(todayISO()).filter(p=>p.time).length;
   },
 
@@ -1059,6 +1129,41 @@ const App = {
     $("#marketTiles").innerHTML = KB.market.map(m=>`
       <div class="tile"><div class="stripe"></div><div class="v" style="font-size:22px">${esc(m.v)}</div><div class="foot">${esc(m.k)}</div></div>`).join("");
   },
+
+  renderSkills(){
+    const ph=skillPhase(), gaps=skillGaps(ph), rated=gaps.filter(x=>x.r);
+    const atTarget=rated.filter(x=>x.gap===0).length;
+    const avg=rated.length?(rated.reduce((a,x)=>a+x.r,0)/rated.length).toFixed(1):"—";
+    const tgAvg=(gaps.reduce((a,x)=>a+x.tg,0)/gaps.length).toFixed(1);
+    $("#skillsVerdict").innerHTML = rated.length
+      ? `Founder skills — <span style="color:${atTarget>=8?'var(--good)':atTarget>=5?'var(--warn)':'var(--crit)'}">${atTarget}/10 at Phase ${ph} target</span>`
+      : `Founder skills — rate yourself to start`;
+    $("#skillTiles").innerHTML = [
+      [avg,"average self-rating"],[tgAvg,`Phase ${ph} target average`],
+      [`${rated.length}/10`,"skills rated"],[`${rated.reduce((a,x)=>a+x.gap,0)}`,"total points of gap"]
+    ].map(([v,k])=>`<div class="tile"><div class="stripe"></div><div class="v" style="font-size:22px">${esc(v)}</div><div class="foot">${esc(k)}</div></div>`).join("");
+    const f=skillFocus();
+    $("#skillFocus").innerHTML = f
+      ? `<div class="eyebrow">${esc(f.s.grp)} · ${f.r} → ${f.tg}</div><h4 style="margin:4px 0 6px;font-size:16px">${esc(f.s.name)}</h4>
+         <p class="muted" style="font-size:13px;margin:0 0 8px">${esc(f.s.why)}</p>
+         <p style="font-size:13.5px;margin:0 0 6px"><b>Drill:</b> ${esc(f.s.drill)}</p>
+         <p style="font-size:13px;margin:0;color:var(--cyan)"><b>Proof it's working:</b> ${esc(f.s.kpi)}</p>`
+      : `<p class="muted" style="margin:0">${rated.length?"Every rated skill is at its Phase "+ph+" target. Raise the bar — switch to the next phase.":"Rate each skill below. Jarvis will pick the one gap that matters most this phase."}</p>`;
+    $("#skillPhaseToggle").innerHTML = [1,2,3,4].map(n=>`<button class="${n===ph?'on':''}" onclick="App.setSkillPhase(${n})">Phase ${n} targets</button>`).join("");
+    $("#skillList").innerHTML = gaps.map(({s,r,tg,gap})=>`
+      <div class="skill">
+        <div class="skill-head">
+          <div><div class="eyebrow">${esc(s.grp)}</div><h4>${esc(s.name)}</h4></div>
+          <div class="rate">${[1,2,3,4,5].map(n=>`<button class="${n===r?'on':''} ${n===tg?'tgt':''}" title="${n===tg?'Phase target':''}" onclick="App.setSkill('${s.id}',${n})">${n}</button>`).join("")}</div>
+        </div>
+        <p class="why">${esc(s.why)}</p>
+        <div class="meter ${!r?'':gap===0?'good':gap===1?'warn':'crit'}"><i style="width:${r?pct(r,5):0}%"></i></div>
+        <p class="lvl-desc"><b>1</b> ${esc(s.l1)} · <b>3</b> ${esc(s.l3)} · <b>5</b> ${esc(s.l5)}</p>
+        <p class="drill"><b>Drill:</b> ${esc(s.drill)} <span style="color:var(--ink-3)">· Target ${tg} · ${r?(gap?gap+" to go":"at target ✓"):"not rated"}</span></p>
+      </div>`).join("");
+  },
+  setSkill(id,n){ State.skills[id]=State.skills[id]===n?0:n; save(); this.renderSkills(); },
+  setSkillPhase(n){ State.skillPhase=n; save(); this.renderSkills(); },
 
   renderGate(){
     const g=gateStatus();
@@ -1345,6 +1450,17 @@ const Jarvis = {
         speak:`Week ${w}. ${wk.focus}. Remember the rhythm: write Sunday, design Monday, record Tuesday, publish and engage midweek.`};
     }
 
+    // founder skills
+    if(has("skill","founder skill","what should i work on","what should i improve","my weakness","develop myself","get better at")){
+      this.context.topic="skills";
+      const f=skillFocus(), rated=skillGaps().filter(x=>x.r);
+      if(!rated.length) return {html:`<p>You haven't rated your founder skills yet. Open <b>◆ Founder Skills</b> and score the ten skills 1–5 — I'll pick the one gap that matters most this phase.</p>`, speak:`You haven't rated your founder skills yet. Open the Founder Skills tab and score them one to five.`};
+      if(!f) return {html:`<p>Every rated skill is at its Phase ${skillPhase()} target. Switch to the next phase's targets and raise the bar.</p>`, speak:`Every rated skill is at target. Raise the bar to the next phase.`};
+      const top=skillGaps().filter(x=>x.r&&x.gap).sort((a,b)=>b.score-a.score).slice(0,3);
+      return {html:`<p>This week, build <b>${esc(f.s.name)}</b> — you're at ${f.r}, the phase needs ${f.tg}.</p><p><b>Drill:</b> ${esc(f.s.drill)}</p><p style="color:var(--cyan)">Proof: ${esc(f.s.kpi)}</p>${top.length>1?`<p class="muted">Next in line: ${top.slice(1).map(x=>esc(x.s.name)).join(" · ")}</p>`:""}`,
+        speak:`This week, build ${f.s.name}. You're at ${f.r}, the phase needs ${f.tg}. The drill: ${f.s.drill}`};
+    }
+
     // gate / progress / how am i doing
     if(has("gate","on track","progress","how am i doing","how am i","feedback","am i on track")){
       this.context.topic="gate"; return this.feedbackContent(); }
@@ -1562,6 +1678,7 @@ CURRENT STATE (live from the dashboard):
 - Today: ${fmtDateLabel(T)}, Week ${w} — ${wk.focus}
 - Today's scheduled items: ${posts.map(p=>`${p.time||"build"} ${p.fmt}: ${p.hook} (CTA ${p.cta||"—"})`).join(" | ")||"none"}
 - Metrics: posts ${State.metrics.posts}/40, subscribers ${State.metrics.subs}/150, LinkedIn ${State.metrics.linkedin}/12, outsized-reach ${State.metrics.outsized}/3, save-trend ${State.metrics.saveTrend?"up":"not yet"}, ebook outline ${State.metrics.ebook?"done":"not yet"}, DM automation ${State.metrics.dm?"reliable":"not yet"}. Gate: ${g.metCount}/7 met.
+- Founder skills (self-rated 1–5 vs Phase ${skillPhase()} target): ${skillGaps().map(x=>`${x.s.name} ${x.r||"?"}/${x.tg}`).join("; ")}. Focus skill: ${skillFocus()?.s.name||"none set"}.
 - Recent log notes: ${(State.logs.slice(0,5).map(l=>l.text).join(" || "))||"none yet"}
 
 Help him stay focused on the day's plan, give honest feedback against the Phase-1 gate, suggest improvements to the strategy/plan when asked, and draft on-brand content (plain English, one small problem per post, hook starts with a verb, zero selling in Phase 1). Keep replies to a few sentences unless asked to expand.`;

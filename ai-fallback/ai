@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+# ai — run Claude Code; if the Claude usage limit is hit, switch to a free AI tool.
+#
+#   ai                 interactive session (Claude, or free fallback if limited)
+#   ai "your prompt"   one-shot prompt; retried on the fallback if Claude is limited
+#   ai --free ...      skip Claude and go straight to the free tool
+#
+# Fallback order (first one installed wins), override with AI_FALLBACK="opencode aider ollama":
+#   opencode  -> free models via Gemini API / Groq / OpenRouter :free
+#   aider     -> same free API keys
+#   ollama    -> fully local, unlimited, no key
+set -uo pipefail
+
+FALLBACKS=${AI_FALLBACK:-"opencode aider ollama"}
+OLLAMA_MODEL=${OLLAMA_MODEL:-"qwen2.5-coder:7b"}
+AIDER_MODEL=${AIDER_MODEL:-"gemini/gemini-2.5-flash"}
+LIMIT_RE='usage limit|limit reached|hit your limit|rate.?limit|credit balance is too low|overloaded|quota|429'
+
+log() { printf '\033[33m[ai]\033[0m %s\n' "$*" >&2; }
+have() { command -v "$1" >/dev/null 2>&1; }
+
+claude_limited() {
+  # Tiny probe: one short reply. Returns 0 (true) if Claude is limited/unavailable.
+  have claude || return 0
+  local out
+  out=$(timeout 60 claude -p "Reply with OK" 2>&1) && ! grep -qiE "$LIMIT_RE" <<<"$out" && return 1
+  log "Claude unavailable: $(head -c 160 <<<"$out" | tr '\n' ' ')"
+  return 0
+}
+
+run_fallback() {  # $@ = optional prompt
+  local tool
+  for tool in $FALLBACKS; do
+    have "$tool" || continue
+    log "Switching to free tool: $tool"
+    case "$tool" in
+      opencode) if [ $# -gt 0 ]; then exec opencode run "$*"; else exec opencode; fi ;;
+      aider)    if [ $# -gt 0 ]; then exec aider --model "$AIDER_MODEL" --message "$*"; else exec aider --model "$AIDER_MODEL"; fi ;;
+      ollama)   if [ $# -gt 0 ]; then exec ollama run "$OLLAMA_MODEL" "$*"; else exec ollama run "$OLLAMA_MODEL"; fi ;;
+      *)        exec "$tool" "$@" ;;
+    esac
+  done
+  log "No free tool installed. Install one: see ai-fallback/README.md"
+  exit 1
+}
+
+if [ "${1:-}" = "--free" ]; then shift; run_fallback "$@"; fi
+
+if [ $# -eq 0 ]; then
+  # Interactive
+  if claude_limited; then run_fallback; fi
+  claude
+  status=$?
+  # If the session ended because the limit hit mid-session, offer to continue on the free tool.
+  if claude_limited; then
+    log "Claude limit reached during session. Continuing on free tool..."
+    run_fallback
+  fi
+  exit $status
+fi
+
+# One-shot prompt
+out=$(claude -p "$*" 2>&1); status=$?
+if [ $status -ne 0 ] || grep -qiE "$LIMIT_RE" <<<"$out"; then
+  log "Claude limited, retrying on free tool"
+  run_fallback "$@"
+fi
+printf '%s\n' "$out"
